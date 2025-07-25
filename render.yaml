@@ -1,0 +1,173 @@
+# Render Blueprint Specification
+# This file defines all services for the aisreact platform
+
+databases:
+  - name: aisreact-db
+    plan: basic-1gb
+    diskSizeGB: 10
+    databaseName: aisreact
+    user: aisreact_user
+    region: oregon
+    postgresMajorVersion: '15'
+
+services:
+  # Backend API Service
+  - type: web
+    name: aisreact-backend
+    runtime: python
+    plan: starter
+    region: oregon
+    branch: main
+    rootDir: backend
+    buildCommand: ./build.sh
+    startCommand: ./start.sh
+    healthCheckPath: /api/health/
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.8"
+      - key: DEBUG
+        value: "True"
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: aisreact-db
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: aisreact-redis
+          type: redis
+          property: connectionString
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_STORAGE_BUCKET_NAME
+        sync: false
+      - key: AWS_S3_REGION_NAME
+        value: us-east-1
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: XAI_API_KEY
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: EMAIL_BACKEND
+        value: "django.core.mail.backends.smtp.EmailBackend"
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        value: "noreply@aisreact.com"
+      - key: DJANGO_SETTINGS_MODULE
+        value: aisreact.settings_production
+      - key: ENVIRONMENT
+        value: "production"
+
+  # Background Worker Service
+  - type: worker
+    name: aisreact-worker
+    runtime: python
+    plan: starter
+    region: oregon
+    branch: main
+    rootDir: backend
+    buildCommand: ./build.sh
+    startCommand: ./start-worker.sh
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.8"
+      - key: DJANGO_SETTINGS_MODULE
+        value: aisreact.settings_production
+      - fromGroup: aisreact-backend
+
+  # Frontend Service
+  - type: web
+    name: aisreact-frontend
+    runtime: node
+    plan: starter
+    region: oregon
+    branch: main
+    rootDir: frontend
+    buildCommand: npm install -g pnpm && pnpm install && pnpm run build
+    startCommand: pnpm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22.16.0"
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_BASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_WS_URL
+        sync: false
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
+      - key: NEXT_PUBLIC_GA_MEASUREMENT_ID
+        sync: false
+
+  # Redis Service
+  - type: redis
+    name: aisreact-redis
+    plan: free
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList:
+      - source: 0.0.0.0/0
+        description: Allow all connections
+
+# Environment Variable Groups
+envVarGroups:
+  - name: aisreact-backend
+    envVars:
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        sync: false
+      - key: SECRET_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_STORAGE_BUCKET_NAME
+        sync: false
+      - key: AWS_S3_REGION_NAME
+        value: us-east-1
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: XAI_API_KEY
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: EMAIL_BACKEND
+        value: "django.core.mail.backends.smtp.EmailBackend"
+      - key: SENDGRID_API_KEY
+        sync: false
+      - key: DEFAULT_FROM_EMAIL
+        value: "noreply@aisreact.com"

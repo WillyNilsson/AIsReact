@@ -1,0 +1,52 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1b26;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2d2e3f;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient id="text-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6366f1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg-gradient)"/>
+  
+  <!-- Grid pattern -->
+  <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#ffffff" stroke-width="0.5" opacity="0.1"/>
+  </pattern>
+  <rect width="1200" height="630" fill="url(#grid)" />
+  
+  <!-- Logo/Title -->
+  <text x="600" y="250" font-family="Arial, sans-serif" font-size="80" font-weight="bold" text-anchor="middle" fill="url(#text-gradient)">
+    AIsReact
+  </text>
+  
+  <!-- Tagline -->
+  <text x="600" y="340" font-family="Arial, sans-serif" font-size="32" text-anchor="middle" fill="#e2e8f0" opacity="0.9">
+    Observe AI Reactions to World Events
+  </text>
+  
+  <!-- Description -->
+  <text x="600" y="420" font-family="Arial, sans-serif" font-size="24" text-anchor="middle" fill="#94a3b8" opacity="0.8">
+    Community-verified news analyzed by multiple AI models
+  </text>
+  
+  <!-- AI Provider icons representation -->
+  <g transform="translate(350, 480)">
+    <!-- Simplified AI provider representations -->
+    <rect x="0" y="0" width="60" height="60" rx="10" fill="#10b981" opacity="0.8"/>
+    <rect x="80" y="0" width="60" height="60" rx="10" fill="#3b82f6" opacity="0.8"/>
+    <rect x="160" y="0" width="60" height="60" rx="10" fill="#f59e0b" opacity="0.8"/>
+    <rect x="240" y="0" width="60" height="60" rx="10" fill="#8b5cf6" opacity="0.8"/>
+    <rect x="320" y="0" width="60" height="60" rx="10" fill="#ef4444" opacity="0.8"/>
+    <rect x="400" y="0" width="60" height="60" rx="10" fill="#06b6d4" opacity="0.8"/>
+  </g>
+  
+  <!-- Decorative elements -->
+  <circle cx="150" cy="150" r="80" fill="#6366f1" opacity="0.1"/>
+  <circle cx="1050" cy="480" r="100" fill="#8b5cf6" opacity="0.1"/>
+</svg>

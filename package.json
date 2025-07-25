@@ -1,0 +1,54 @@
+{
+  "name": "aisreact",
+  "version": "1.0.0",
+  "description": "An open-source platform for observing how different AI models react to real-world news and events",
+  "private": true,
+  "scripts": {
+    "preinstall": "node check-node-version.js",
+    "check:node": "node check-node-version.js",
+    "dev": "npm run check:node && concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && source venv/bin/activate && uvicorn app.main:app --reload",
+    "dev:frontend": "cd frontend && npm run dev",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "setup": "npm run check:node && npm run setup:backend && npm run setup:frontend",
+    "setup:backend": "cd backend && python -m venv venv && source venv/bin/activate && pip install -r requirements.txt",
+    "setup:frontend": "cd frontend && npm install",
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "cd backend && pytest",
+    "test:frontend": "cd frontend && npm test",
+    "lint": "npm run lint:backend && npm run lint:frontend",
+    "lint:backend": "cd backend && black . --check && flake8",
+    "lint:frontend": "cd frontend && npm run lint",
+    "format": "npm run format:backend && npm run format:frontend",
+    "format:backend": "cd backend && black .",
+    "format:frontend": "cd frontend && npm run format"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aisreact/aisreact.git"
+  },
+  "keywords": [
+    "ai",
+    "artificial-intelligence",
+    "news",
+    "analysis",
+    "transparency",
+    "open-source"
+  ],
+  "author": "aisreact.com contributors",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/aisreact/aisreact/issues"
+  },
+  "homepage": "https://github.com/aisreact/aisreact#readme",
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "packageManager": "pnpm@10.13.1"
+}

@@ -1,0 +1,193 @@
+# Alert rules for aisreact platform
+groups:
+  - name: aisreact_availability
+    interval: 30s
+    rules:
+      # Service availability
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.instance }} of job {{ $labels.job }} has been down for more than 2 minutes."
+
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(aisreact_http_request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High response time on {{ $labels.endpoint }}"
+          description: "95th percentile response time is above 2 seconds (current: {{ $value }}s)"
+
+      - alert: HighErrorRate
+        expr: rate(aisreact_http_requests_total{status=~"5.."}[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is above 5% (current: {{ $value | humanizePercentage }})"
+
+  - name: aisreact_database
+    interval: 30s
+    rules:
+      - alert: DatabaseConnectionPoolExhausted
+        expr: aisreact_database_connections_active > 90
+        for: 5m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Database connection pool nearly exhausted"
+          description: "Active connections: {{ $value }} out of 100"
+
+      - alert: DatabaseResponseTimeSlow
+        expr: histogram_quantile(0.95, rate(pg_stat_statements_mean_seconds[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Database queries are slow"
+          description: "95th percentile query time is above 1 second"
+
+  - name: aisreact_redis
+    interval: 30s
+    rules:
+      - alert: RedisDown
+        expr: redis_up == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: backend
+        annotations:
+          summary: "Redis is down"
+          description: "Redis has been down for more than 2 minutes"
+
+      - alert: RedisMemoryHigh
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 10m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Redis memory usage is high"
+          description: "Redis is using {{ $value | humanizePercentage }} of available memory"
+
+  - name: aisreact_ai_providers
+    interval: 30s
+    rules:
+      - alert: AIProviderHighFailureRate
+        expr: rate(aisreact_ai_analyses_total{status="failure"}[5m]) / rate(aisreact_ai_analyses_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "AI provider {{ $labels.provider }} has high failure rate"
+          description: "Failure rate: {{ $value | humanizePercentage }}"
+
+      - alert: AIProviderSlow
+        expr: histogram_quantile(0.95, rate(aisreact_ai_analysis_duration_seconds_bucket[5m])) > 30
+        for: 10m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "AI provider {{ $labels.provider }} is slow"
+          description: "95th percentile response time: {{ $value }}s"
+
+  - name: aisreact_business_metrics
+    interval: 30s
+    rules:
+      - alert: LowPostSubmissionRate
+        expr: rate(aisreact_posts_created_total[1h]) < 0.1
+        for: 2h
+        labels:
+          severity: info
+          team: product
+        annotations:
+          summary: "Low post submission rate"
+          description: "Less than 6 posts per hour for the last 2 hours"
+
+      - alert: HighModerationRejectionRate
+        expr: rate(aisreact_posts_moderated_total{result="rejected"}[1h]) / rate(aisreact_posts_moderated_total[1h]) > 0.5
+        for: 1h
+        labels:
+          severity: warning
+          team: moderation
+        annotations:
+          summary: "High moderation rejection rate"
+          description: "{{ $value | humanizePercentage }} of posts are being rejected"
+
+      - alert: BackgroundTaskBacklog
+        expr: aisreact_background_tasks_total{status="pending"} > 100
+        for: 30m
+        labels:
+          severity: warning
+          team: backend
+        annotations:
+          summary: "Background task backlog is growing"
+          description: "{{ $value }} tasks pending execution"
+
+  - name: aisreact_infrastructure
+    interval: 30s
+    rules:
+      - alert: HighCPUUsage
+        expr: 100 - (avg by (instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}%"
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value }}%"
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) * 100 < 15
+        for: 10m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Only {{ $value }}% disk space remaining"
+
+  - name: aisreact_security
+    interval: 30s
+    rules:
+      - alert: HighAuthenticationFailureRate
+        expr: rate(aisreact_http_requests_total{endpoint="/api/auth/token",status="401"}[5m]) > 1
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "High authentication failure rate"
+          description: "{{ $value }} failed login attempts per second"
+
+      - alert: SuspiciousActivity
+        expr: rate(aisreact_http_requests_total{status="403"}[5m]) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "Suspicious activity detected"
+          description: "High rate of forbidden requests: {{ $value }} per second"

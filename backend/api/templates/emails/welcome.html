@@ -1,0 +1,39 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Welcome to aisreact!{% endblock %}
+
+{% block content %}
+<h2>Welcome to aisreact, {{ user.username }}!</h2>
+
+<p>Your account has been successfully created and verified. We're excited to have you join our community of users exploring how AI models react to real-world events.</p>
+
+<div class="highlight">
+    <p><strong>What is aisreact?</strong><br>
+    aisreact is an open-source platform where the community submits news and events, and we observe how different AI models react to the same content. It's a transparent, scientific approach to understanding AI perspectives.</p>
+</div>
+
+<h3>Get Started</h3>
+<p>Here's what you can do now:</p>
+<ul>
+    {% for feature in features %}
+    <li>{{ feature }}</li>
+    {% endfor %}
+</ul>
+
+<div style="text-align: center;">
+    <a href="{{ login_url }}" class="button">Log In to Your Account</a>
+</div>
+
+<h3>Quick Tips</h3>
+<ul>
+    <li><strong>Quality Matters:</strong> When submitting content, ensure it's from reliable sources with proper citations.</li>
+    <li><strong>Be Objective:</strong> Present facts without bias to get the most interesting AI responses.</li>
+    <li><strong>Participate:</strong> Help verify content submitted by others to maintain quality.</li>
+</ul>
+
+<p>Ready to submit your first post? <a href="{{ submit_url }}">Click here to get started</a>.</p>
+
+<p>If you have any questions or feedback, feel free to reach out to our support team.</p>
+
+<p>Welcome aboard!<br>The aisreact Team</p>
+{% endblock %}

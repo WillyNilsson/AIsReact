@@ -1,0 +1,214 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+    tenant_id: aisreact
+    batchwait: 1s
+    batchsize: 1048576  # 1MB
+
+    # Rate limiting
+    external_labels:
+      cluster: aisreact
+      namespace: production
+
+    # Retry configuration
+    backoff_config:
+      min_period: 500ms
+      max_period: 5m
+      max_retries: 10
+
+scrape_configs:
+  # Scrape Docker container logs
+  - job_name: docker
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: docker
+          __path__: /var/lib/docker/containers/*/*log
+
+    pipeline_stages:
+      # Parse Docker logs
+      - json:
+          expressions:
+            output: log
+            stream: stream
+            time: time
+            docker:
+              container_name: '\"container_name\"'
+              container_id: '\"container_id\"'
+
+      # Parse structured logs from aisreact backend
+      - match:
+          selector: '{container_name=~"aisreact-backend.*"}'
+          stages:
+            - json:
+                expressions:
+                  level: level
+                  logger: logger
+                  message: message
+                  request_id: request_id
+                  user_id: user_id
+                  path: path
+                  method: method
+                  status_code: status_code
+                  event_type: event_type
+                  event_category: event_category
+                  duration_seconds: duration_seconds
+                  error_type: error_type
+                  timestamp: timestamp
+
+            - labels:
+                level:
+                event_type:
+                event_category:
+                method:
+
+            - timestamp:
+                source: timestamp
+                format: RFC3339Nano
+                fallback_formats:
+                  - UnixMs
+                  - Unix
+                  - RFC3339
+
+      # Label containers
+      - regex:
+          expression: '(?P<container_name>(?:[^|]*))\|(?P<image_name>(?:[^|]*))\|(?P<container_id>(?:[^|]*))'
+          source: filename
+
+      - labels:
+          container_name:
+          container_id:
+          image_name:
+
+  # Scrape system logs
+  - job_name: syslog
+    journal:
+      json: false
+      max_age: 12h
+      path: /var/log/journal
+      labels:
+        job: systemd-journal
+    relabel_configs:
+      - source_labels: ['__journal__systemd_unit']
+        target_label: 'unit'
+
+  # Scrape aisreact application log files
+  - job_name: aisreact-files
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: aisreact-files
+          __path__: /var/log/aisreact/*.log
+
+    pipeline_stages:
+      # Detect log file type from filename
+      - regex:
+          expression: '/var/log/aisreact/(?P<log_type>\w+)\.log'
+          source: filename
+
+      - labels:
+          log_type:
+
+      # Parse JSON logs
+      - json:
+          expressions:
+            level: level
+            levelname: levelname
+            logger: logger
+            name: name
+            message: message
+            msg: msg
+            request_id: request_id
+            user_id: user_id
+            path: path
+            method: method
+            status_code: status_code
+            event_type: event_type
+            event_category: event_category
+            duration_seconds: duration_seconds
+            error_type: error_type
+            timestamp: timestamp
+            asctime: asctime
+
+      # Use either level or levelname
+      - template:
+          source: level
+          template: '{{ or .level .levelname }}'
+
+      # Use either message or msg
+      - template:
+          source: message
+          template: '{{ or .message .msg }}'
+
+      # Use either logger or name
+      - template:
+          source: logger
+          template: '{{ or .logger .name }}'
+
+      # Label important fields
+      - labels:
+          level:
+          event_type:
+          event_category:
+
+      # Parse timestamp
+      - timestamp:
+          source: timestamp
+          format: RFC3339Nano
+          fallback_formats:
+            - UnixMs
+            - Unix
+            - RFC3339
+            - '2006-01-02 15:04:05'
+
+      # Drop debug logs in production (optional)
+      - match:
+          selector: '{level="DEBUG"}'
+          action: drop
+          drop_counter_reason: debug_logs
+
+  # Scrape nginx access logs
+  - job_name: nginx
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: nginx
+          __path__: /var/log/nginx/access.log
+
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<remote_addr>[\w\.]+) - (?P<remote_user>[^ ]*) \[(?P<time_local>[^\]]+)\] "(?P<method>[A-Z]+) (?P<request>[^ ]+) (?P<protocol>[^"]+)" (?P<status>\d+) (?P<body_bytes_sent>\d+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)"'
+
+      - labels:
+          method:
+          status:
+
+      - metrics:
+          http_nginx_response_bytes_total:
+            type: Counter
+            description: "Total bytes sent"
+            source: body_bytes_sent
+            config:
+              action: add
+          http_nginx_request_duration_seconds:
+            type: Histogram
+            description: "Request duration"
+            source: request_time
+            config:
+              buckets: [0.001, 0.01, 0.1, 0.5, 1.0, 5.0]
+
+# Limits to prevent overload
+limits_config:
+  readline_rate_enabled: true
+  readline_rate: 100
+  readline_burst: 200
+  max_streams: 10000

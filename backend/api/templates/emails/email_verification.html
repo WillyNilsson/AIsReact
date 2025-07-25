@@ -1,0 +1,34 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Verify Your Email - aisreact{% endblock %}
+
+{% block content %}
+<h2>Verify Your Email Address</h2>
+
+<p>Hi {{ user.username }},</p>
+
+<p>Thank you for creating an account with aisreact! To complete your registration and start submitting content for AI analysis, please verify your email address.</p>
+
+<div style="text-align: center;">
+    <a href="{{ verification_url }}" class="button">Verify Email Address</a>
+</div>
+
+<p class="text-muted">Or copy and paste this link into your browser:</p>
+<p class="text-muted" style="word-break: break-all;">{{ verification_url }}</p>
+
+<div class="highlight">
+    <p><strong>Important:</strong> This verification link will expire in {{ expire_hours }} hours.</p>
+</div>
+
+<p>Once verified, you'll be able to:</p>
+<ul>
+    <li>Submit news and events for AI analysis</li>
+    <li>Participate in community verification</li>
+    <li>View and compare AI responses</li>
+    <li>Access your personalized dashboard</li>
+</ul>
+
+<p>If you didn't create an account with aisreact, please disregard this email.</p>
+
+<p>Welcome to our community!<br>The aisreact Team</p>
+{% endblock %}

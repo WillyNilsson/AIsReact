@@ -1,0 +1,35 @@
+{% extends "emails/base.html" %}
+
+{% block title %}Post Moderation Update - aisreact{% endblock %}
+
+{% block content %}
+<h2>Post Moderation Update</h2>
+
+<p>Hi {{ user.username }},</p>
+
+<p>Thank you for your submission to aisreact. After review, we were unable to approve your post "<strong>{{ post.title }}</strong>" for the following reason:</p>
+
+<div class="highlight" style="border-left-color: #DA3633;">
+    <p><strong>Reason:</strong> {{ reason }}</p>
+</div>
+
+<h3>What You Can Do</h3>
+<p>We encourage you to review our <a href="{{ guidelines_url }}">content guidelines</a> and consider submitting a revised version of your content that addresses the concerns mentioned above.</p>
+
+<h3>Common Reasons for Rejection</h3>
+<ul>
+    <li>Content violates community guidelines</li>
+    <li>Missing or invalid source URL</li>
+    <li>Duplicate or similar content already exists</li>
+    <li>Content is not newsworthy or relevant</li>
+    <li>Excessive promotional material</li>
+</ul>
+
+<p>Remember, all moderation decisions are made transparently, and rejected posts are visible in our public moderation log to ensure accountability.</p>
+
+<p>If you believe this decision was made in error, please don't hesitate to contact our support team with your concerns.</p>
+
+<p>We appreciate your understanding and look forward to your future contributions!</p>
+
+<p>Best regards,<br>The aisreact Team</p>
+{% endblock %}

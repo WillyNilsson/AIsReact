@@ -1,0 +1,218 @@
+# This file has been disabled - Sentry is not configured for initial deployment
+# To re-enable:
+# 1. Rename this file back to sentry.py
+# 2. Uncomment sentry-sdk in requirements.txt
+# 3. Set SENTRY_DSN environment variable
+# 4. Uncomment Sentry initialization in settings_production.py
+
+"""
+Sentry configuration for error tracking.
+"""
+
+import os
+
+import sentry_sdk
+from sentry_sdk.integrations.celery import CeleryIntegration
+from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.logging import LoggingIntegration
+from sentry_sdk.integrations.redis import RedisIntegration
+
+
+def init_sentry(debug=False):
+    """
+    Initialize Sentry error tracking.
+
+    Args:
+        debug: Whether to enable debug mode
+    """
+    dsn = os.environ.get("SENTRY_DSN")
+
+    if not dsn:
+        print("Sentry DSN not configured, error tracking disabled")
+        return
+
+    # Configure logging integration
+    sentry_logging = LoggingIntegration(
+        level=logging.INFO,  # Capture info and above as breadcrumbs
+        event_level=logging.ERROR,  # Send errors as events
+    )
+
+    # Initialize Sentry
+    sentry_sdk.init(
+        dsn=dsn,
+        integrations=[
+            DjangoIntegration(
+                transaction_style="endpoint",
+                middleware_spans=True,
+                signals_spans=True,
+                cache_spans=True,
+            ),
+            sentry_logging,
+            RedisIntegration(),
+            CeleryIntegration(
+                monitor_beat_tasks=True,
+                propagate_traces=True,
+            ),
+        ],
+        # Performance monitoring
+        traces_sample_rate=float(os.environ.get("SENTRY_TRACES_SAMPLE_RATE", "0.1")),
+        profiles_sample_rate=float(
+            os.environ.get("SENTRY_PROFILES_SAMPLE_RATE", "0.1")
+        ),
+        # Environment and release
+        environment=os.environ.get("ENVIRONMENT", "development"),
+        release=os.environ.get("SENTRY_RELEASE") or os.environ.get("APP_VERSION"),
+        # Options
+        debug=debug or os.environ.get("SENTRY_DEBUG", "").lower() == "true",
+        attach_stacktrace=os.environ.get("SENTRY_ATTACH_STACKTRACE", "true").lower()
+        == "true",
+        send_default_pii=os.environ.get("SENTRY_SEND_DEFAULT_PII", "false").lower()
+        == "true",
+        # Filtering
+        before_send=before_send_filter,
+        before_send_transaction=before_send_transaction_filter,
+        # Additional options
+        max_breadcrumbs=50,
+        request_bodies="medium",
+        with_locals=True,
+        # Ignore certain errors
+        ignore_errors=[
+            # Django
+            "django.core.exceptions.PermissionDenied",
+            "django.core.exceptions.SuspiciousOperation",
+            "django.http.response.Http404",
+            # Python built-ins
+            "KeyboardInterrupt",
+            "SystemExit",
+            # Common client errors
+            "ConnectionError",
+            "ConnectionResetError",
+            "BrokenPipeError",
+        ],
+    )
+
+    # Set user context function
+    from django.contrib.auth.models import AnonymousUser
+
+    def sentry_set_user_context(request):
+        """Set user context for Sentry."""
+        if hasattr(request, "user") and not isinstance(request.user, AnonymousUser):
+            sentry_sdk.set_user(
+                {
+                    "id": request.user.id,
+                    "username": request.user.username,
+                    "email": (
+                        request.user.email
+                        if not request.user.email.endswith("@example.com")
+                        else None
+                    ),
+                }
+            )
+
+    # Make it available globally
+    import api
+
+    api.sentry_set_user_context = sentry_set_user_context
+
+
+def before_send_filter(event, hint):
+    """
+    Filter events before sending to Sentry.
+
+    Args:
+        event: The error event
+        hint: Additional information about the error
+
+    Returns:
+        Modified event or None to drop the event
+    """
+    # Drop events from health check endpoints
+    if "request" in event and event["request"].get("url", "").endswith("/health/"):
+        return None
+
+    # Sanitize sensitive data
+    if "request" in event:
+        # Remove auth headers
+        if "headers" in event["request"]:
+            event["request"]["headers"] = {
+                k: v
+                for k, v in event["request"]["headers"].items()
+                if k.lower() not in ["authorization", "cookie", "x-api-key"]
+            }
+
+        # Sanitize request data
+        if "data" in event["request"]:
+            event["request"]["data"] = sanitize_data(event["request"]["data"])
+
+    # Add custom tags
+    if "tags" not in event:
+        event["tags"] = {}
+
+    # Add deployment info if available
+    event["tags"]["deployment"] = os.environ.get("DEPLOYMENT_TYPE", "unknown")
+    event["tags"]["server"] = os.environ.get("SERVER_NAME", "unknown")
+
+    return event
+
+
+def before_send_transaction_filter(event, hint):
+    """
+    Filter performance transactions before sending to Sentry.
+
+    Args:
+        event: The transaction event
+        hint: Additional information
+
+    Returns:
+        Modified event or None to drop the transaction
+    """
+    # Drop transactions for static files
+    if event.get("transaction", "").startswith("/static/"):
+        return None
+
+    # Drop health check transactions
+    if event.get("transaction", "").endswith("/health/"):
+        return None
+
+    return event
+
+
+def sanitize_data(data):
+    """
+    Recursively sanitize sensitive data.
+
+    Args:
+        data: Data to sanitize
+
+    Returns:
+        Sanitized data
+    """
+    if isinstance(data, dict):
+        sanitized = {}
+        for key, value in data.items():
+            if any(
+                sensitive in key.lower()
+                for sensitive in [
+                    "password",
+                    "secret",
+                    "token",
+                    "key",
+                    "auth",
+                    "credit",
+                    "ssn",
+                ]
+            ):
+                sanitized[key] = "[REDACTED]"
+            else:
+                sanitized[key] = sanitize_data(value)
+        return sanitized
+    elif isinstance(data, list):
+        return [sanitize_data(item) for item in data]
+    elif isinstance(data, str) and len(data) > 1000:
+        # Truncate long strings
+        return data[:1000] + "... [TRUNCATED]"
+    return data
+
+
+# Import logging at the end to avoid circular imports
+import logging

@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # Loki - Log aggregation and storage
+  loki:
+    image: grafana/loki:2.9.0
+    container_name: aisreact-loki
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./monitoring/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    restart: unless-stopped
+    networks:
+      - aisreact-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3100/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Promtail - Log collector and shipper
+  promtail:
+    image: grafana/promtail:2.9.0
+    container_name: aisreact-promtail
+    command: -config.file=/etc/promtail/config.yml
+    volumes:
+      - ./monitoring/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/log:/var/log:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./logs:/var/log/aisreact:ro  # Mount application logs
+      - promtail_positions:/tmp
+    restart: unless-stopped
+    depends_on:
+      - loki
+    networks:
+      - aisreact-network
+    # Required to read Docker container logs
+    user: root
+
+  # Grafana - Visualization (optional, can use existing)
+  grafana-logging:
+    image: grafana/grafana:10.0.0
+    container_name: aisreact-grafana-logging
+    environment:
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_FEATURE_TOGGLES_ENABLE=traceToLogs
+    ports:
+      - "3001:3000"  # Different port to avoid conflict
+    volumes:
+      - grafana_logging_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    restart: unless-stopped
+    depends_on:
+      - loki
+    networks:
+      - aisreact-network
+
+volumes:
+  loki_data:
+    driver: local
+  promtail_positions:
+    driver: local
+  grafana_logging_data:
+    driver: local
+
+networks:
+  aisreact-network:
+    external: true
+    name: aisreact_default

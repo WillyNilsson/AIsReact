@@ -1,0 +1,104 @@
+# Alertmanager configuration
+global:
+  resolve_timeout: 5m
+  smtp_from: 'alerts@aisreact.com'
+  smtp_smarthost: 'smtp.sendgrid.net:587'
+  smtp_auth_username: 'apikey'
+  smtp_auth_password: '${SENDGRID_API_KEY}'
+
+# Templates for notifications
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
+
+# Route tree
+route:
+  group_by: ['alertname', 'cluster', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 12h
+  receiver: 'default'
+
+  routes:
+    # Critical alerts
+    - match:
+        severity: critical
+      receiver: 'critical'
+      continue: true
+
+    # Security alerts
+    - match:
+        team: security
+      receiver: 'security-team'
+
+    # Database alerts
+    - match_re:
+        alertname: ^(Database|PostgreSQL|Redis).*
+      receiver: 'database-team'
+
+    # AI provider alerts
+    - match_re:
+        alertname: ^AIProvider.*
+      receiver: 'ai-team'
+
+# Receivers
+receivers:
+  - name: 'default'
+    email_configs:
+      - to: 'platform-team@aisreact.com'
+        headers:
+          Subject: '[aisreact Alert] {{ .GroupLabels.alertname }}'
+        html: |
+          <h2>{{ .GroupLabels.alertname }}</h2>
+          <p><strong>Status:</strong> {{ .Status | toUpper }}</p>
+          {{ range .Alerts }}
+          <hr>
+          <p><strong>Summary:</strong> {{ .Annotations.summary }}</p>
+          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+          <p><strong>Labels:</strong></p>
+          <ul>
+          {{ range .Labels.SortedPairs }}
+            <li><strong>{{ .Name }}:</strong> {{ .Value }}</li>
+          {{ end }}
+          </ul>
+          {{ end }}
+
+  - name: 'critical'
+    email_configs:
+      - to: 'critical-alerts@aisreact.com'
+        headers:
+          Subject: '[CRITICAL] {{ .GroupLabels.alertname }}'
+    webhook_configs:
+      - url: '${SLACK_WEBHOOK_URL}'
+        send_resolved: true
+    pagerduty_configs:
+      - service_key: '${PAGERDUTY_SERVICE_KEY}'
+
+  - name: 'security-team'
+    email_configs:
+      - to: 'security@aisreact.com'
+    webhook_configs:
+      - url: '${SECURITY_SLACK_WEBHOOK_URL}'
+
+  - name: 'database-team'
+    email_configs:
+      - to: 'database-team@aisreact.com'
+
+  - name: 'ai-team'
+    email_configs:
+      - to: 'ai-team@aisreact.com'
+
+# Inhibition rules
+inhibit_rules:
+  # Inhibit less severe alerts if critical alerts are firing
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'cluster', 'service']
+
+  # Don't alert on high memory if node is down
+  - source_match:
+      alertname: 'ServiceDown'
+    target_match_re:
+      alertname: '^(HighMemoryUsage|HighCPUUsage|DiskSpaceLow)$'
+    equal: ['instance']

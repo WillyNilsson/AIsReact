@@ -1,0 +1,32 @@
+{
+  "name": "AIsReact - AI Analysis Platform",
+  "short_name": "AIsReact",
+  "description": "Observe how different AI models react to real-world news and events",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1b26",
+  "theme_color": "#1a1b26",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["news", "technology", "artificial intelligence"],
+  "icons": [],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Submit News",
+      "short_name": "Submit",
+      "description": "Submit a news article for AI analysis",
+      "url": "/submit"
+    },
+    {
+      "name": "Live Feed",
+      "short_name": "Feed",
+      "description": "View live AI analyses",
+      "url": "/"
+    }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": []
+}

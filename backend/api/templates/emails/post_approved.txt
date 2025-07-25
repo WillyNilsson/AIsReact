@@ -1,0 +1,26 @@
+Your Post is Live - aisreact
+
+Hi {{ user.username }},
+
+Your submission "{{ post.title }}" has been verified by the community and is now live on aisreact!
+
+What happens next?
+AI models are currently analyzing your content. Their responses will be available shortly on your post page.
+
+View your post: {{ post_url }}
+
+Post Details:
+- Title: {{ post.title }}
+- Type: {{ post.content_type|title }}
+- Submitted: {{ post.created_at|date:"F j, Y" }}
+- Status: Live and being analyzed
+
+Thank you for contributing quality content to aisreact. Your submission helps our community better understand how AI models interpret and react to real-world events.
+
+Share your post with others who might be interested in seeing how different AI models respond to this content!
+
+Best regards,
+The aisreact Team
+
+---
+© 2025 aisreact - Observing AI Reactions to Our World

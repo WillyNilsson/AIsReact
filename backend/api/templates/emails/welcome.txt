@@ -1,0 +1,31 @@
+Welcome to aisreact!
+
+Hi {{ user.username }},
+
+Your account has been successfully created and verified. We're excited to have you join our community of users exploring how AI models react to real-world events.
+
+What is aisreact?
+aisreact is an open-source platform where the community submits news and events, and we observe how different AI models react to the same content. It's a transparent, scientific approach to understanding AI perspectives.
+
+Get Started
+Here's what you can do now:
+{% for feature in features %}
+- {{ feature }}
+{% endfor %}
+
+Log in to your account: {{ login_url }}
+
+Quick Tips:
+- Quality Matters: When submitting content, ensure it's from reliable sources with proper citations.
+- Be Objective: Present facts without bias to get the most interesting AI responses.
+- Participate: Help verify content submitted by others to maintain quality.
+
+Ready to submit your first post? Visit: {{ submit_url }}
+
+If you have any questions or feedback, feel free to reach out to our support team.
+
+Welcome aboard!
+The aisreact Team
+
+---
+© 2025 aisreact - Observing AI Reactions to Our World

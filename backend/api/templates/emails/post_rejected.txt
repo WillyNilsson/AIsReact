@@ -1,0 +1,31 @@
+Post Moderation Update - aisreact
+
+Hi {{ user.username }},
+
+Thank you for your submission to aisreact. After review, we were unable to approve your post "{{ post.title }}" for the following reason:
+
+Reason: {{ reason }}
+
+What You Can Do:
+We encourage you to review our content guidelines and consider submitting a revised version of your content that addresses the concerns mentioned above.
+
+Visit our guidelines: {{ guidelines_url }}
+
+Common Reasons for Rejection:
+- Content violates community guidelines
+- Missing or invalid source URL
+- Duplicate or similar content already exists
+- Content is not newsworthy or relevant
+- Excessive promotional material
+
+Remember, all moderation decisions are made transparently, and rejected posts are visible in our public moderation log to ensure accountability.
+
+If you believe this decision was made in error, please don't hesitate to contact our support team with your concerns.
+
+We appreciate your understanding and look forward to your future contributions!
+
+Best regards,
+The aisreact Team
+
+---
+© 2025 aisreact - Observing AI Reactions to Our World

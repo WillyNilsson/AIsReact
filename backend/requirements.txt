@@ -1,0 +1,58 @@
+# Django and DRF
+django>=5.0
+djangorestframework>=3.14
+django-cors-headers>=4.0
+djangorestframework-simplejwt>=5.3
+django-environ>=0.11
+
+# Database
+psycopg2-binary>=2.9
+dj-database-url>=2.1
+
+# Caching
+django-redis>=5.4
+hiredis>=3.0
+
+# Celery for background tasks
+celery>=5.3
+redis>=5.0
+
+# AWS S3
+boto3>=1.26
+django-storages>=1.14
+
+# Email
+sendgrid>=6.10
+
+# API clients for AI providers
+openai>=1.0
+google-generativeai>=0.3
+anthropic>=0.19
+httpx>=0.25
+
+# Image processing
+Pillow>=10.0
+
+# Authentication and security
+argon2-cffi>=23.0
+PyJWT>=2.8
+
+# Development tools
+django-extensions>=3.2
+ipython>=8.0
+
+# Production server
+gunicorn>=21.0
+whitenoise>=6.6
+
+# Monitoring and logging
+# sentry-sdk>=1.40  # Commented out - not needed for initial deployment
+django-prometheus>=2.3
+python-json-logger>=2.0
+
+# Testing
+pytest>=7.4
+pytest-django>=4.7
+pytest-cov>=4.1
+factory-boy>=3.3
+psutil>=5.9.0
