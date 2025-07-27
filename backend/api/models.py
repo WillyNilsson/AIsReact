@@ -218,7 +218,7 @@ class User(AbstractUser):
                 }
             )
 
-        # Moderator/Admin badges
+        # Moderator badge only (admin badge removed for security)
         if self.role == "moderator":
             badges.append(
                 {
@@ -226,15 +226,6 @@ class User(AbstractUser):
                     "name": "Moderator",
                     "description": "Community moderator",
                     "icon": "gavel",
-                }
-            )
-        elif self.role == "admin":
-            badges.append(
-                {
-                    "id": "admin",
-                    "name": "Admin",
-                    "description": "Platform administrator",
-                    "icon": "crown",
                 }
             )
 

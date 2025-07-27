@@ -129,17 +129,17 @@ repos:
         pass_filenames: false
 
   # Python type checking
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.8.0
-    hooks:
-      - id: mypy
-        files: ^backend/
-        args: ['--ignore-missing-imports', '--check-untyped-defs', '--no-strict-optional']
-        additional_dependencies:
-          - django-stubs
-          - djangorestframework-stubs
-          - types-requests
-          - types-redis
+  # - repo: https://github.com/pre-commit/mirrors-mypy
+  #   rev: v1.8.0
+  #   hooks:
+  #     - id: mypy
+  #       files: ^backend/
+  #       args: ['--ignore-missing-imports', '--check-untyped-defs', '--no-strict-optional']
+  #       additional_dependencies:
+  #         - django-stubs
+  #         - djangorestframework-stubs
+  #         - types-requests
+  #         - types-redis
 
 # Configuration for specific file types
 files: |

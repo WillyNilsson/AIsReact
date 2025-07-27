@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,16 +10,19 @@ import {
   useVerificationQueueInfinite,
   type VerificationQueueResponse,
 } from "@/hooks/useVerification";
-import { useOptimisticVote } from "@/lib/hooks/useOptimisticVote";
+// TEMPORARILY DISABLED: Community voting
+// import { useOptimisticVote } from "@/lib/hooks/useOptimisticVote";
 // TEMPORARILY DISABLED FOR V1: Email verification
 // import EmailVerificationGuard from '@/components/auth/email-verification-guard';
-import { useVoteSync } from "@/lib/hooks/useVoteSync";
+// TEMPORARILY DISABLED: Vote syncing
+// import { useVoteSync } from "@/lib/hooks/useVoteSync";
 import { PostFeedItem } from "@/lib/types";
 import { VerificationPostCard } from "./VerificationPostCard";
 
 export default function VerifyPage() {
   const router = useRouter();
-  const [votingPostId, setVotingPostId] = useState<number | null>(null);
+  // TEMPORARILY DISABLED: Community voting
+  // const [votingPostId, setVotingPostId] = useState<number | null>(null);
 
   const {
     data,
@@ -30,7 +33,8 @@ export default function VerifyPage() {
     hasNextPage,
   } = useVerificationQueueInfinite(10); // 10 items per page
 
-  const { vote, isVoting } = useOptimisticVote();
+  // TEMPORARILY DISABLED: Community voting
+  // const { vote, isVoting } = useOptimisticVote();
 
   // Flatten all pages into a single array of posts
   const posts = useMemo(() => {
@@ -42,28 +46,29 @@ export default function VerifyPage() {
     );
   }, [data]);
 
-  // Sync vote data from API
-  useVoteSync(posts);
+  // TEMPORARILY DISABLED: Vote syncing no longer needed
+  // useVoteSync(posts);
 
-  const handleVote = async (
-    postId: number,
-    voteValue: boolean,
-    post: PostFeedItem,
-  ) => {
-    setVotingPostId(postId);
-    try {
-      await vote({
-        postId,
-        voteData: {
-          vote: voteValue,
-        },
-        currentPost: post,
-      });
-      setVotingPostId(null);
-    } catch {
-      setVotingPostId(null);
-    }
-  };
+  // TEMPORARILY DISABLED: Community voting
+  // const handleVote = async (
+  //   postId: number,
+  //   voteValue: boolean,
+  //   post: PostFeedItem,
+  // ) => {
+  //   setVotingPostId(postId);
+  //   try {
+  //     await vote({
+  //       postId,
+  //       voteData: {
+  //         vote: voteValue,
+  //       },
+  //       currentPost: post,
+  //     });
+  //     setVotingPostId(null);
+  //   } catch {
+  //     setVotingPostId(null);
+  //   }
+  // };
 
   const emptyState = (
     <Card className="p-8 text-center bg-[#1a1b26] border-[#2a2d3a]">
@@ -91,12 +96,47 @@ export default function VerifyPage() {
     <>
       <div className="max-w-4xl mx-auto py-8 px-4">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Verify Posts</h1>
+          <h1 className="text-3xl font-bold mb-2">
+            Community Verification (Temporarily Disabled)
+          </h1>
           <p className="text-gray-600">
             Help maintain content quality by verifying the accuracy of submitted
             posts.
           </p>
         </div>
+
+        {/* Explanation notice */}
+        <Card className="mb-8 p-6 bg-amber-500/10 border-amber-500/30">
+          <h3 className="text-lg font-semibold mb-3 text-amber-300">
+            Important Notice: Community Verification is Temporarily Disabled
+          </h3>
+          <div className="space-y-3 text-sm text-gray-300">
+            <p>
+              <strong>How verification originally worked:</strong> Users could
+              see the submitted content and compare it against the source
+              article to verify accuracy.
+            </p>
+            <p>
+              <strong>Why we made changes:</strong> To respect copyright, we
+              removed the display of article content from posts.
+            </p>
+            <p>
+              <strong>The problem this created:</strong> Without seeing the
+              submitted content, community members cannot verify if it matches
+              the source article, making the verification system non-functional.
+            </p>
+            <p>
+              <strong>Our current solution:</strong> Posts are now verified by
+              administrators only. While this ensures quality, we recognize it's
+              not ideal for community participation.
+            </p>
+            <p>
+              <strong>Looking forward:</strong> We're actively exploring
+              solutions that balance copyright respect with community
+              verification. Ideas and suggestions are welcome!
+            </p>
+          </div>
+        </Card>
 
         {error && !posts.length && (
           <Alert variant="error" className="mb-6">
@@ -111,9 +151,9 @@ export default function VerifyPage() {
             <VerificationPostCard
               key={post.id}
               post={post}
-              onVote={handleVote}
-              isVoting={isVoting}
-              votingPostId={votingPostId}
+              onVote={() => {}} // Voting disabled
+              isVoting={false}
+              votingPostId={null}
             />
           )}
           onLoadMore={() => fetchNextPage()}

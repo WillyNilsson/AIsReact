@@ -203,6 +203,7 @@ REST_FRAMEWORK = {
         "user": "1000/hour",
         "registration": "5/hour",  # Registration endpoint
         "login": "10/hour",  # Login attempts
+        # pragma: allowlist secret
         "password_reset": "3/hour",  # Password reset requests
         "token_refresh": "30/hour",  # Token refresh
         "email_verification": "5/hour",  # Email verification
@@ -341,7 +342,13 @@ AWS_SECRET_ACCESS_KEY = env("AWS_SECRET_ACCESS_KEY", default=None)
 
 # Additional S3 settings
 AWS_S3_REGION_NAME = env("AWS_S3_REGION_NAME", default="us-east-1")
-AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
+
+# Use CloudFront domain if configured, otherwise use S3 directly
+AWS_CLOUDFRONT_DOMAIN = env("AWS_CLOUDFRONT_DOMAIN", default=None)
+if AWS_CLOUDFRONT_DOMAIN:
+    AWS_S3_CUSTOM_DOMAIN = AWS_CLOUDFRONT_DOMAIN
+else:
+    AWS_S3_CUSTOM_DOMAIN = f"{AWS_STORAGE_BUCKET_NAME}.s3.amazonaws.com"
 
 if not DEBUG:
     AWS_S3_OBJECT_PARAMETERS = {

@@ -4,7 +4,6 @@ DRF views for aisreact API.
 
 import contextlib
 import logging
-import uuid
 from typing import Optional, cast
 
 import boto3
@@ -37,9 +36,9 @@ from .serializers import (
     UserRegistrationSerializer,
     UserSerializer,
     UserStatsSerializer,
-    VerificationVoteSerializer,
 )
 from .services.email_utils import send_email_verification
+from .services.image_processor import ImageProcessor
 from .tasks import run_ai_analysis, run_automated_moderation
 from .throttles import (
     AuthThrottle,
@@ -503,82 +502,135 @@ class UserViewSet(viewsets.ReadOnlyModelViewSet):
 
     @action(detail=False, methods=["post"])
     def upload_avatar(self, request):
-        """Generate presigned URL for avatar upload."""
-        # Check if filename is provided
-        filename = request.data.get("filename")
-        if not filename:
+        """
+        Upload avatar with server-side processing.
+        Strips EXIF metadata and optimizes image before uploading to S3.
+        """
+        # Get the uploaded file
+        uploaded_file = request.FILES.get("avatar")
+        if not uploaded_file:
             return Response(
-                {"detail": "Filename is required"}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        # Validate file extension
-        allowed_extensions = ["jpg", "jpeg", "png", "gif", "webp"]
-        file_extension = filename.split(".")[-1].lower()
-        if file_extension not in allowed_extensions:
-            return Response(
-                {
-                    "detail": (
-                        f"Invalid file type. Allowed: "
-                        f"{', '.join(allowed_extensions)}"
-                    )
-                },
+                {"detail": "No avatar file provided"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Generate unique key for avatar
-        key = f"avatars/{request.user.id}/{uuid.uuid4()}.{file_extension}"
-
-        # Generate presigned URL
         try:
-            s3_client = boto3.client(
-                "s3",
-                aws_access_key_id=getattr(settings, "AWS_ACCESS_KEY_ID", None),
-                aws_secret_access_key=getattr(settings, "AWS_SECRET_ACCESS_KEY", None),
-                region_name=getattr(settings, "AWS_S3_REGION_NAME", "us-east-1"),
-            )
-            presigned_url = s3_client.generate_presigned_url(
-                "put_object",
-                Params={
-                    "Bucket": settings.AWS_STORAGE_BUCKET_NAME,
-                    "Key": key,
-                    "ContentType": f"image/{file_extension}",
-                    # Note: ACL removed as bucket uses bucket policy instead
-                },
-                ExpiresIn=3600,  # 1 hour
+            # Read file data
+            image_data = uploaded_file.read()
+
+            # Validate image
+            ImageProcessor.validate_image(image_data)
+
+            # Process image (strip EXIF, optimize, resize for avatar)
+            processed_data, content_type, metadata = (
+                ImageProcessor.strip_exif_and_optimize(
+                    image_data,
+                    uploaded_file.name,
+                    max_width=400,  # Avatars don't need to be huge
+                    max_height=400,
+                )
             )
 
-            # Update user's avatar_url
-            avatar_url = (
-                f"https://{settings.AWS_STORAGE_BUCKET_NAME}." f"s3.amazonaws.com/{key}"
-            )
-            request.user.avatar_url = avatar_url
-            request.user.save()
+            # Generate secure S3 path for avatar
+            secure_path = ImageProcessor.generate_secure_path(
+                request.user.id, uploaded_file.name
+            ).replace(
+                "uploads/", "avatars/"
+            )  # Use avatars folder
 
-            return Response(
-                {
-                    "upload_url": presigned_url,
-                    "avatar_url": avatar_url,
-                }
-            )
-        except ClientError as e:
-            # Log the full error for debugging but don't expose to client
-            logger.error(
-                f"S3 avatar upload URL generation failed: {e}",
-                extra={
-                    "user_id": request.user.id,
-                    "error_code": (
-                        e.response.get("Error", {}).get("Code") if e.response else None
+            # Upload to S3
+            try:
+                s3_client = boto3.client(
+                    "s3",
+                    aws_access_key_id=getattr(settings, "AWS_ACCESS_KEY_ID", None),
+                    aws_secret_access_key=getattr(
+                        settings, "AWS_SECRET_ACCESS_KEY", None
                     ),
-                    "request_id": (
-                        e.response.get("ResponseMetadata", {}).get("RequestId")
-                        if e.response
-                        else None
-                    ),
-                },
-            )
-            # Return generic error to avoid exposing AWS details
+                    region_name=getattr(settings, "AWS_S3_REGION_NAME", "us-east-1"),
+                )
+
+                # Upload processed avatar with CloudFront-optimized headers
+                s3_client.put_object(
+                    Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+                    Key=secure_path,
+                    Body=processed_data,
+                    ContentType=content_type,
+                    # 1 year cache for CloudFront
+                    CacheControl="public, max-age=31536000, immutable",
+                    ServerSideEncryption="AES256",
+                    Metadata={
+                        "processed": "true",
+                        "user_id_hash": secure_path.split("/")[
+                            1
+                        ],  # Store hashed user ID instead
+                        "upload_date": timezone.now().isoformat(),
+                    },
+                )
+
+                # Update user's avatar URL (use CloudFront if configured)
+                if (
+                    hasattr(settings, "AWS_S3_CUSTOM_DOMAIN")
+                    and settings.AWS_S3_CUSTOM_DOMAIN
+                ):
+                    avatar_url = (
+                        f"https://{settings.AWS_S3_CUSTOM_DOMAIN}/{secure_path}"
+                    )
+                else:
+                    avatar_url = (
+                        f"https://{settings.AWS_STORAGE_BUCKET_NAME}."
+                        f"s3.amazonaws.com/{secure_path}"
+                    )
+
+                # Delete old avatar if exists
+                if request.user.avatar_url:
+                    try:
+                        old_key = request.user.avatar_url.split(".com/")[-1]
+                        s3_client.delete_object(
+                            Bucket=settings.AWS_STORAGE_BUCKET_NAME, Key=old_key
+                        )
+                    except Exception as e:
+                        logger.warning(f"Failed to delete old avatar: {str(e)}")
+
+                # Update user record
+                request.user.avatar_url = avatar_url
+                request.user.save()
+
+                # Audit log avatar update
+                AuditLogger.log_user_management(
+                    request=request,
+                    action=AuditLog.ACTION_PROFILE_UPDATE,
+                    target_user=request.user,
+                    success=True,
+                    changed_fields=["avatar_url"],
+                )
+
+                # Return avatar URL and metadata
+                return Response(
+                    {
+                        "avatar_url": avatar_url,
+                        "metadata": metadata,
+                        "message": (
+                            "Avatar uploaded successfully with EXIF data stripped"
+                        ),
+                    },
+                    status=status.HTTP_200_OK,
+                )
+
+            except ClientError as e:
+                logger.error(
+                    f"S3 avatar upload failed: {e}", extra={"user_id": request.user.id}
+                )
+                return Response(
+                    {"detail": "Failed to upload avatar. Please try again later."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Unexpected error in avatar upload: {str(e)}")
             return Response(
-                {"detail": "Failed to generate upload URL. Please try again later."},
+                {"detail": "An error occurred processing your avatar"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -643,82 +695,85 @@ class PostViewSet(viewsets.ModelViewSet):
             output_serializer.data, status=status.HTTP_201_CREATED, headers=headers
         )
 
-    @action(
-        detail=True, methods=["post"], permission_classes=[permissions.IsAuthenticated]
-    )
-    def verify(self, request, pk=None):
-        """Submit a verification vote."""
-        post = self.get_object()
-
-        # Check if post is pending verification
-        if post.status != "pending_verification":
-            return Response(
-                {"detail": "This post is not open for verification"},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        # Check if already voted
-        existing_vote = VerificationVote.objects.filter(
-            user=request.user, post=post
-        ).first()
-
-        if existing_vote:
-            # Check if clicking the same vote (toggle off)
-            requested_vote = request.data.get("vote")
-            if existing_vote.vote == requested_vote:
-                # Delete the vote
-                existing_vote.delete()
-                return Response(
-                    {
-                        "detail": "Vote removed",
-                        "user_vote": None,
-                        "new_verification_score": post.verification_score,
-                        "new_verification_count": post.verification_count,
-                    },
-                    status=status.HTTP_200_OK,
-                )
-            else:
-                # Change vote
-                serializer = VerificationVoteSerializer(
-                    existing_vote, data=request.data, context={"request": request}
-                )
-        else:
-            # New vote
-            serializer = VerificationVoteSerializer(
-                data=request.data, context={"request": request}
-            )
-
-        if serializer.is_valid():
-            if existing_vote:
-                vote = serializer.save()
-            else:
-                vote = serializer.save(post=post, user=request.user)
-
-            # Check if post should be verified
-            if post.verification_count >= 5 and post.verification_score >= 80:
-                post.status = "live"
-                post.verified_at = timezone.now()
-                post.save()
-                # Trigger AI analysis
-                run_ai_analysis.delay(post.id)
-
-            # Return comprehensive response matching frontend expectations
-            response_data = {
-                "id": vote.id,
-                "user": {"id": vote.user.id, "username": vote.user.username},
-                "post_id": post.id,
-                "vote_type": "positive" if vote.vote else "negative",
-                "vote": vote.vote,
-                "reason": vote.comment,
-                "created_at": vote.created_at,
-                "new_verification_score": post.verification_score,
-                "new_verification_count": post.verification_count,
-                "post_status": post.status,
-                "message": "Vote recorded successfully",
-            }
-
-            return Response(response_data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    # TEMPORARILY DISABLED: Community verification disabled due to copyright changes
+    # Users can no longer see submitted content to verify against source
+    # @action(
+    #     detail=True, methods=["post"],
+    #     permission_classes=[permissions.IsAuthenticated]
+    # )
+    # def verify(self, request, pk=None):
+    #     """Submit a verification vote."""
+    #     post = self.get_object()
+    #
+    #     # Check if post is pending verification
+    #     if post.status != "pending_verification":
+    #         return Response(
+    #             {"detail": "This post is not open for verification"},
+    #             status=status.HTTP_400_BAD_REQUEST,
+    #         )
+    #
+    #     # Check if already voted
+    #     existing_vote = VerificationVote.objects.filter(
+    #         user=request.user, post=post
+    #     ).first()
+    #
+    #     if existing_vote:
+    #         # Check if clicking the same vote (toggle off)
+    #         requested_vote = request.data.get("vote")
+    #         if existing_vote.vote == requested_vote:
+    #             # Delete the vote
+    #             existing_vote.delete()
+    #             return Response(
+    #                 {
+    #                     "detail": "Vote removed",
+    #                     "user_vote": None,
+    #                     "new_verification_score": post.verification_score,
+    #                     "new_verification_count": post.verification_count,
+    #                 },
+    #                 status=status.HTTP_200_OK,
+    #             )
+    #         else:
+    #             # Change vote
+    #             serializer = VerificationVoteSerializer(
+    #                 existing_vote, data=request.data, context={"request": request}
+    #             )
+    #     else:
+    #         # New vote
+    #         serializer = VerificationVoteSerializer(
+    #             data=request.data, context={"request": request}
+    #         )
+    #
+    #     if serializer.is_valid():
+    #         if existing_vote:
+    #             vote = serializer.save()
+    #         else:
+    #             vote = serializer.save(post=post, user=request.user)
+    #
+    #         # Check if post should be verified
+    #         if post.verification_count >= 5 and post.verification_score >= 80:
+    #             post.status = "live"
+    #             post.verified_at = timezone.now()
+    #             post.save()
+    #             # Trigger AI analysis
+    #             run_ai_analysis.delay(post.id)
+    #
+    #         # Return comprehensive response matching frontend expectations
+    #         response_data = {
+    #             "id": vote.id,
+    #             "user": {"id": vote.user.id, "username": vote.user.username},
+    #             "post_id": post.id,
+    #             "vote_type": "positive" if vote.vote else "negative",
+    #             "vote": vote.vote,
+    #             "reason": vote.comment,
+    #             "created_at": vote.created_at,
+    #             "new_verification_score": post.verification_score,
+    #             "new_verification_count": post.verification_count,
+    #             "post_status": post.status,
+    #             "message": "Vote recorded successfully",
+    #         }
+    #
+    #         return Response(response_data, status=status.HTTP_201_CREATED)
+    #     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(
         detail=True,
@@ -814,87 +869,88 @@ class PostViewSet(viewsets.ModelViewSet):
 
         return Response(stats_data)
 
-    @action(
-        detail=False,
-        methods=["post"],
-        permission_classes=[permissions.IsAuthenticated],
-        url_path="batch-vote",
-    )
-    def batch_vote(self, request):
-        """Submit verification votes for multiple posts."""
-        post_ids = request.data.get("post_ids", [])
-        # Default to positive vote
-        vote_value = request.data.get("vote", True)
-
-        if not post_ids:
-            return Response(
-                {"detail": "No post IDs provided"}, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        results = []
-
-        for post_id in post_ids:
-            try:
-                post = Post.objects.get(id=post_id)
-
-                # Check if post is pending verification
-                if post.status != "pending_verification":
-                    results.append(
-                        {
-                            "post_id": post_id,
-                            "success": False,
-                            "error": "Post is not open for verification",
-                        }
-                    )
-                    continue
-
-                # Check if already voted
-                existing_vote = VerificationVote.objects.filter(
-                    user=request.user, post=post
-                ).first()
-
-                if existing_vote:
-                    results.append(
-                        {
-                            "post_id": post_id,
-                            "success": False,
-                            "error": "Already voted on this post",
-                        }
-                    )
-                    continue
-
-                # Create vote
-                VerificationVote.objects.create(
-                    user=request.user, post=post, vote=vote_value, comment=""
-                )
-
-                # Check if post should be verified
-                if post.verification_count >= 5 and post.verification_score >= 80:
-                    post.status = "live"
-                    post.verified_at = timezone.now()
-                    post.save()
-                    # Trigger AI analysis
-                    run_ai_analysis.delay(post.id)
-
-                results.append(
-                    {
-                        "post_id": post_id,
-                        "success": True,
-                        "new_vote_count": post.verification_count,
-                    }
-                )
-
-            except Post.DoesNotExist:
-                results.append(
-                    {"post_id": post_id, "success": False, "error": "Post not found"}
-                )
-            except Exception as e:
-                logger.error(f"Error in batch vote for post {post_id}: {str(e)}")
-                results.append(
-                    {"post_id": post_id, "success": False, "error": "Internal error"}
-                )
-
-        return Response({"message": "Votes processed", "results": results})
+    # TEMPORARILY DISABLED: Community verification disabled due to copyright changes
+    # @action(
+    #     detail=False,
+    #     methods=["post"],
+    #     permission_classes=[permissions.IsAuthenticated],
+    #     url_path="batch-vote",
+    # )
+    # def batch_vote(self, request):
+    #     """Submit verification votes for multiple posts."""
+    #     post_ids = request.data.get("post_ids", [])
+    #     # Default to positive vote
+    #     vote_value = request.data.get("vote", True)
+    #
+    #     if not post_ids:
+    #         return Response(
+    #             {"detail": "No post IDs provided"}, status=status.HTTP_400_BAD_REQUEST
+    #         )
+    #
+    #     results = []
+    #
+    #     for post_id in post_ids:
+    #         try:
+    #             post = Post.objects.get(id=post_id)
+    #
+    #             # Check if post is pending verification
+    #             if post.status != "pending_verification":
+    #                 results.append(
+    #                     {
+    #                         "post_id": post_id,
+    #                         "success": False,
+    #                         "error": "Post is not open for verification",
+    #                     }
+    #                 )
+    #                 continue
+    #
+    #             # Check if already voted
+    #             existing_vote = VerificationVote.objects.filter(
+    #                 user=request.user, post=post
+    #             ).first()
+    #
+    #             if existing_vote:
+    #                 results.append(
+    #                     {
+    #                         "post_id": post_id,
+    #                         "success": False,
+    #                         "error": "Already voted on this post",
+    #                     }
+    #                 )
+    #                 continue
+    #
+    #             # Create vote
+    #             VerificationVote.objects.create(
+    #                 user=request.user, post=post, vote=vote_value, comment=""
+    #             )
+    #
+    #             # Check if post should be verified
+    #             if post.verification_count >= 5 and post.verification_score >= 80:
+    #                 post.status = "live"
+    #                 post.verified_at = timezone.now()
+    #                 post.save()
+    #                 # Trigger AI analysis
+    #                 run_ai_analysis.delay(post.id)
+    #
+    #             results.append(
+    #                 {
+    #                     "post_id": post_id,
+    #                     "success": True,
+    #                     "new_vote_count": post.verification_count,
+    #                 }
+    #             )
+    #
+    #         except Post.DoesNotExist:
+    #             results.append(
+    #                 {"post_id": post_id, "success": False, "error": "Post not found"}
+    #             )
+    #         except Exception as e:
+    #             logger.error(f"Error in batch vote for post {post_id}: {str(e)}")
+    #             results.append(
+    #                 {"post_id": post_id, "success": False, "error": "Internal error"}
+    #             )
+    #
+    #     return Response({"message": "Votes processed", "results": results})
 
     def destroy(self, request, *args, **kwargs):
         """Override destroy to allow admins to delete any post."""
@@ -911,7 +967,10 @@ class PostViewSet(viewsets.ModelViewSet):
         if post.status == "live":
             return Response(
                 {
-                    "detail": "Cannot delete posts that have been analyzed. This preserves the historical record of AI responses."
+                    "detail": (
+                        "Cannot delete posts that have been analyzed. "
+                        "This preserves the historical record of AI responses."
+                    )
                 },
                 status=status.HTTP_403_FORBIDDEN,
             )
@@ -920,6 +979,125 @@ class PostViewSet(viewsets.ModelViewSet):
         post.delete()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    # TEMPORARILY DISABLED: Post image uploads disabled due to copyright concerns
+    # @action(detail=False, methods=["post"], url_path="upload-image")
+    # def upload_image(self, request):
+    #     """
+    #     Upload image for posts with server-side processing.
+    #     Strips EXIF metadata and optimizes image before uploading to S3.
+    #
+    #     This is the secure alternative to presigned URLs.
+    #     """
+    #     uploaded_file = request.FILES.get('image')
+    #     if not uploaded_file:
+    #         return Response(
+    #             {"detail": "No image file provided"},
+    #             status=status.HTTP_400_BAD_REQUEST
+    #         )
+    #
+    #     try:
+    #         # Read file data
+    #         image_data = uploaded_file.read()
+    #
+    #         # Validate image
+    #         ImageProcessor.validate_image(image_data)
+    #
+    #         # Process image (strip EXIF, optimize)
+    #         processed_data, content_type, metadata = (
+    #             ImageProcessor.strip_exif_and_optimize(
+    #             image_data,
+    #             uploaded_file.name,
+    #             max_width=1920,  # Full size for posts
+    #             max_height=1080
+    #         )
+    #         )
+    #         # Generate secure S3 path
+    #         secure_path = ImageProcessor.generate_secure_path(
+    #             request.user.id,
+    #             uploaded_file.name
+    #         )
+    #
+    #         # Upload to S3
+    #         try:
+    #             s3_client = boto3.client(
+    #                 "s3",
+    #                 aws_access_key_id=getattr(settings, "AWS_ACCESS_KEY_ID", None),
+    #                 aws_secret_access_key=getattr(
+    #                     settings, "AWS_SECRET_ACCESS_KEY", None
+    #                 ),
+    #                 region_name=getattr(settings, "AWS_S3_REGION_NAME", "us-east-1"),
+    #             )
+    #
+    #             # Upload processed image with CloudFront-optimized headers
+    #             s3_client.put_object(
+    #                 Bucket=settings.AWS_STORAGE_BUCKET_NAME,
+    #                 Key=secure_path,
+    #                 Body=processed_data,
+    #                 ContentType=content_type,
+    #                 # 1 year cache
+    #                 CacheControl='public, max-age=31536000, immutable',
+    #                 ServerSideEncryption='AES256',
+    #                 Metadata={
+    #                     'processed': 'true',
+    #                     'original_filename': uploaded_file.name[:100],  # Limit length
+    #                     'upload_date': timezone.now().isoformat(),
+    #                 }
+    #             )
+    #
+    #             # Return CloudFront URL if configured
+    #             if (
+    #                 hasattr(settings, 'AWS_S3_CUSTOM_DOMAIN')
+    #                 and settings.AWS_S3_CUSTOM_DOMAIN
+    #             ):
+    #                 image_url = (
+    #                     f"https://{settings.AWS_S3_CUSTOM_DOMAIN}/{secure_path}"
+    #                 )
+    #             else:
+    #                 image_url = (
+    #                     f"https://{settings.AWS_STORAGE_BUCKET_NAME}."
+    #                     f"s3.amazonaws.com/{secure_path}"
+    #                 )
+    #
+    #             # Log successful upload
+    #             logger.info(
+    #                 f"Post image uploaded successfully",
+    #                 extra={
+    #                     "user_id": request.user.id,
+    #                     "path": secure_path,
+    #                     "size": metadata.get("file_size"),
+    #                     "original_size": len(image_data)
+    #                 }
+    #             )
+    #
+    #             return Response({
+    #                 "image_url": image_url,
+    #                 "message": "Image uploaded successfully",
+    #                 "metadata": {
+    #                     "size": metadata.get("file_size"),
+    #                     "dimensions": metadata.get("processed_size"),
+    #                     "format": content_type
+    #                 }
+    #             })
+    #
+    #         except ClientError as e:
+    #             logger.error(f"S3 upload failed: {str(e)}")
+    #             return Response(
+    #                 {"detail": "Failed to upload image to storage"},
+    #                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
+    #             )
+    #
+    #     except ValueError as e:
+    #         return Response(
+    #             {"detail": str(e)},
+    #             status=status.HTTP_400_BAD_REQUEST
+    #         )
+    #     except Exception as e:
+    #         logger.error(f"Image upload error: {str(e)}")
+    #         return Response(
+    #             {"detail": "Failed to process image"},
+    #             status=status.HTTP_500_INTERNAL_SERVER_ERROR
+    #         )
 
 
 class FeedViewSet(viewsets.ReadOnlyModelViewSet):
@@ -970,19 +1148,25 @@ class FeedViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class S3PresignedUrlView(APIView):
-    """Generate presigned URLs for S3 uploads."""
+    """
+    Generate presigned URLs for S3 uploads with secure paths.
+    Note: This endpoint now uses secure hashed paths instead of exposing user IDs.
+    Images uploaded through presigned URLs won't have EXIF data stripped.
+
+    For secure uploads with EXIF stripping, use /api/posts/upload-image/ instead.
+    """
 
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request):
+
         serializer = S3PresignedUrlSerializer(data=request.data)
         if serializer.is_valid():
             filename = serializer.validated_data["filename"]
             content_type = serializer.validated_data["content_type"]
 
-            # Generate unique key
-            file_extension = filename.split(".")[-1]
-            key = f"uploads/{request.user.id}/{uuid.uuid4()}.{file_extension}"
+            # Generate secure key that doesn't expose user ID
+            key = ImageProcessor.generate_secure_path(request.user.id, filename)
 
             # Generate presigned URL
             try:
@@ -1005,13 +1189,22 @@ class S3PresignedUrlView(APIView):
                     ExpiresIn=3600,  # 1 hour
                 )
 
+                # Use CloudFront domain if configured
+                if (
+                    hasattr(settings, "AWS_S3_CUSTOM_DOMAIN")
+                    and settings.AWS_S3_CUSTOM_DOMAIN
+                ):
+                    file_url = f"https://{settings.AWS_S3_CUSTOM_DOMAIN}/{key}"
+                else:
+                    file_url = (
+                        f"https://{settings.AWS_STORAGE_BUCKET_NAME}."
+                        f"s3.amazonaws.com/{key}"
+                    )
+
                 return Response(
                     {
                         "upload_url": presigned_url,
-                        "file_url": (
-                            f"https://{settings.AWS_STORAGE_BUCKET_NAME}."
-                            f"s3.amazonaws.com/{key}"
-                        ),
+                        "file_url": file_url,
                     }
                 )
             except ClientError as e:

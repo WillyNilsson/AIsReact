@@ -279,6 +279,7 @@ npm test
 - **NEVER hardcode values**: No localhost URLs, passwords, or API keys in code
 - **NEVER make unasked changes**: Don't remove/change things the user didn't request
 - **NEVER trust without verification**: Show grep output, test results, actual evidence
+- **NEVER create duplicate files or solutions**: Always modify existing files or solutions instead of creating new ones with similar names (e.g., don't create setup-cloudfront-username.sh when you can update setup-cloudfront.sh or old version and secure version)
 - **ALWAYS re-read your code**: Use Read tool to see what you actually wrote
 - **ALWAYS test error paths**: Happy path only = incomplete
 - **ALWAYS consider security**: This handles user data and money

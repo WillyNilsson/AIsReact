@@ -4,7 +4,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { VoteButtons } from "@/components/ui/vote-buttons";
 import { AdminApproveButton } from "@/components/ui/admin-approve-button";
-import { useVerificationStats } from "@/hooks/useVerification";
+// TEMPORARILY DISABLED: Not needed without community voting
+// import { useVerificationStats } from "@/hooks/useVerification";
 import { PostFeedItem } from "@/lib/types";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -15,6 +16,7 @@ import { useVoteStore } from "@/store/voteStore";
 
 interface VerificationPostCardProps {
   post: PostFeedItem;
+  // TEMPORARILY DISABLED: These props kept for easy re-enabling when community voting returns
   onVote: (postId: number, voteValue: boolean, post: PostFeedItem) => void;
   isVoting: boolean;
   votingPostId: number | null;
@@ -22,11 +24,15 @@ interface VerificationPostCardProps {
 
 export function VerificationPostCard({
   post,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onVote,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   isVoting,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   votingPostId,
 }: VerificationPostCardProps) {
-  const { data: stats } = useVerificationStats(post.id);
+  // TEMPORARILY DISABLED: Verification stats no longer needed without community voting
+  // const { data: stats } = useVerificationStats(post.id);
   const user = useAuthStore((state) => state.user);
   const getVote = useVoteStore((state) => state.getVote);
 
@@ -42,17 +48,6 @@ export function VerificationPostCard({
       : userVoteBoolean === false
         ? "negative"
         : null;
-
-  // Debug logging
-  // eslint-disable-next-line no-console
-  console.log("VerificationPostCard vote state:", {
-    postId: post.id,
-    currentVoteFromStore: currentVote,
-    postUserVote: post.user_vote,
-    statsUserVote: stats?.user_vote,
-    finalUserVoteBoolean: userVoteBoolean,
-    finalUserVoteString: userVote,
-  });
 
   return (
     <Card
@@ -152,14 +147,24 @@ export function VerificationPostCard({
       {/* Action Buttons */}
       <div className="flex gap-2">
         <div className="flex-1">
-          <VoteButtons
-            postId={post.id}
-            userVote={userVote}
-            isVoting={isVoting && votingPostId === post.id}
-            onVote={async (voteValue) => {
-              await onVote(post.id, voteValue, post);
-            }}
-          />
+          {/* TEMPORARILY DISABLED: Community voting disabled due to copyright changes */}
+          <div className="relative">
+            <div className="opacity-50 pointer-events-none">
+              <VoteButtons
+                postId={post.id}
+                userVote={userVote}
+                isVoting={false}
+                onVote={async () => {
+                  // Voting disabled
+                }}
+              />
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="text-xs text-amber-400 bg-[#1a1b26]/80 px-2 py-1 rounded">
+                Voting temporarily disabled
+              </span>
+            </div>
+          </div>
         </div>
         <Link href={`/posts/${post.id}`}>
           <Button

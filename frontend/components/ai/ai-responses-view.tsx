@@ -6,20 +6,18 @@ import { AIResponseCard } from "./ai-response-card";
 import { AIResponseErrorBoundary } from "@/components/error-boundary/ai-response-error-boundary";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, RefreshCw, GitCompare } from "lucide-react";
+import { Loader2, GitCompare } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 interface AIResponsesViewProps {
   responses: AIResponse[];
   isLoading?: boolean;
-  onRefresh?: () => void;
   postId?: number;
 }
 
 export function AIResponsesView({
   responses,
   isLoading,
-  onRefresh,
 }: AIResponsesViewProps) {
   const [expandedCards] = useState<Set<number>>(new Set());
   const [showComparison, setShowComparison] = useState(true);
@@ -78,17 +76,6 @@ export function AIResponsesView({
     return (
       <div className="text-center py-8">
         <p className="text-gray-500">No AI analysis has been performed yet.</p>
-        {onRefresh && (
-          <Button
-            onClick={onRefresh}
-            variant="outline"
-            size="sm"
-            className="mt-4"
-          >
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Trigger AI Analysis
-          </Button>
-        )}
       </div>
     );
   }
@@ -123,12 +110,6 @@ export function AIResponsesView({
           {/* Grid/List view toggle and Expand/Collapse buttons removed */}
 
           {/* Compare All button removed */}
-
-          {onRefresh && (
-            <Button onClick={onRefresh} variant="outline" size="sm">
-              <RefreshCw className="w-4 h-4" />
-            </Button>
-          )}
         </div>
       </div>
 

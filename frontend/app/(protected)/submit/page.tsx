@@ -231,32 +231,13 @@ export default function SubmitPage() {
       // Handle image upload if file is selected - TEMPORARILY DISABLED
       /* if (selectedFile) {
         try {
-          // Get presigned URL from backend
-          const response = await api.post("/api/upload/presigned-url/", {
-            filename: selectedFile.name,
-            content_type: selectedFile.type,
-          });
+          // Upload through backend for EXIF stripping and processing
+          const formData = new FormData();
+          formData.append("image", selectedFile);
 
-          const { upload_url, file_url } = response;
+          const response = await api.postFormData("/api/posts/upload-image/", formData);
+          imageUrl = response.image_url;
 
-          // Upload file to S3
-          const uploadResponse = await fetch(upload_url, {
-            method: "PUT",
-            body: selectedFile,
-            headers: {
-              "Content-Type": selectedFile.type,
-            },
-          });
-
-          if (!uploadResponse.ok) {
-            // Check if it's an expired URL (403 Forbidden)
-            if (uploadResponse.status === 403) {
-              throw new Error("Upload link expired. Please try again.");
-            }
-            throw new Error("upload failed");
-          }
-
-          imageUrl = file_url;
         } catch (uploadError) {
           const errorMsg = getErrorMessage(uploadError, { action: "upload" });
           throw new Error(errorMsg);

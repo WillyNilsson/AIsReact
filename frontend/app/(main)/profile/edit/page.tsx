@@ -96,33 +96,25 @@ export default function EditProfilePage() {
     setError("");
 
     try {
-      // Request presigned URL for avatar upload
-      const { upload_url, avatar_url } = await api.post(
+      // Create FormData to send file
+      const formData = new FormData();
+      formData.append("avatar", file);
+
+      // Upload directly to backend (which will process and upload to S3)
+      const response = await api.postFormData(
         "/api/auth/upload-avatar/",
-        {
-          filename: file.name,
-        },
+        formData,
       );
 
-      // Upload file to S3
-      const uploadResponse = await fetch(upload_url, {
-        method: "PUT",
-        body: file,
-        headers: {
-          "Content-Type": file.type,
-        },
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error("Failed to upload avatar");
-      }
-
       // Update cached profile data
-      if (profile) {
-        queryClient.setQueryData(["auth-me"], { ...profile, avatar_url });
+      if (profile && response.avatar_url) {
+        queryClient.setQueryData(["auth-me"], {
+          ...profile,
+          avatar_url: response.avatar_url,
+        });
       }
 
-      setSuccess("Avatar updated successfully!");
+      setSuccess(response.message || "Avatar updated successfully!");
 
       // Force refetch to ensure data is synced
       queryClient.invalidateQueries({ queryKey: ["auth-me"] });
@@ -421,7 +413,7 @@ export default function EditProfilePage() {
                     onChange={handleInputChange}
                     placeholder="username"
                     className="rounded-l-none bg-[#1a1b26] border-[#2a2d3a] text-[#c0caf5] placeholder-[#787c99] focus:border-[#7aa2f7] focus:ring-[#7aa2f7]"
-                    pattern="[a-zA-Z0-9-]+"
+                    pattern="[a-zA-Z0-9\-]+"
                   />
                 </div>
               </div>

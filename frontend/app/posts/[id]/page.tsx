@@ -13,7 +13,7 @@ import { PostStatus } from "@/lib/types";
 import { useVerificationStats } from "@/hooks/useVerification";
 import { useOptimisticVote } from "@/lib/hooks/useOptimisticVote";
 import { AIResponsesView } from "@/components/ai/ai-responses-view";
-import { Bell, Clock, RefreshCw } from "lucide-react";
+import { Bell, Clock } from "lucide-react";
 import { useState, useEffect } from "react";
 import { safeLocaleString } from "@/lib/utils/date";
 import { useToast } from "@/components/ui/toast";
@@ -56,12 +56,7 @@ function PostDetailContent() {
   const validPostId = postId && !isNaN(postId) ? postId : null;
 
   // Get post data
-  const {
-    data: post,
-    isLoading,
-    error,
-    refetch: mutatePost,
-  } = usePost(validPostId);
+  const { data: post, isLoading, error } = usePost(validPostId);
   const { data: stats, refetch: _mutateStats } =
     useVerificationStats(validPostId);
   const { vote, isVoting } = useOptimisticVote();
@@ -231,18 +226,6 @@ function PostDetailContent() {
               <span>Last updated: {format(lastUpdated, "HH:mm:ss")}</span>
             </div>
           )}
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => mutatePost()}
-            disabled={isLoading}
-          >
-            <RefreshCw
-              className={cn("w-4 h-4 mr-1", isLoading && "animate-spin")}
-            />
-            Refresh
-          </Button>
 
           {hasNewUpdate && (
             <div className="flex items-center gap-2 text-sm text-accent-400 animate-pulse">
@@ -435,11 +418,7 @@ function PostDetailContent() {
             />
             {user?.role === "admin" && (
               <div className="mt-4">
-                <AdminApproveButton
-                  postId={post.id}
-                  className="w-full"
-                  onSuccess={() => mutatePost()}
-                />
+                <AdminApproveButton postId={post.id} className="w-full" />
               </div>
             )}
           </div>
@@ -457,41 +436,7 @@ function PostDetailContent() {
 
       {/* AI Responses */}
       <Card className="p-6 mb-6">
-        <AIResponsesView
-          responses={post.ai_responses || []}
-          postId={post.id}
-          onRefresh={
-            post.status === PostStatus.LIVE && user?.role === "admin"
-              ? async () => {
-                  try {
-                    await api.post(
-                      `/api/posts/${post.id}/trigger_ai_analysis/`,
-                    );
-
-                    addToast({
-                      type: "success",
-                      title: "AI analysis triggered successfully",
-                      description: "Results will appear shortly.",
-                    });
-                    // Refresh the page data after a delay
-                    setTimeout(() => {
-                      window.location.reload();
-                    }, 2000);
-                  } catch (err) {
-                    const errorMessage =
-                      err instanceof Error
-                        ? err.message
-                        : "Failed to trigger AI analysis";
-                    addToast({
-                      type: "error",
-                      title: "Error",
-                      description: errorMessage,
-                    });
-                  }
-                }
-              : undefined
-          }
-        />
+        <AIResponsesView responses={post.ai_responses || []} postId={post.id} />
       </Card>
 
       {/* Delete Confirmation Dialog */}

@@ -66,6 +66,11 @@ function setupInterceptors() {
       if (token && config.headers) {
         config.headers.Authorization = `Bearer ${token}`;
       }
+
+      // Don't set Content-Type for FormData - let browser set it with boundary
+      if (config.data instanceof FormData) {
+        delete config.headers["Content-Type"];
+      }
       // Debug logging for voting endpoint
       if (config.url?.includes("/verify/")) {
         // eslint-disable-next-line no-console
@@ -423,6 +428,14 @@ export const api = {
     }
     setupInterceptors();
     return apiClient.post(url, data).then((res) => res.data);
+  },
+  postFormData: (url: string | null | undefined, formData: FormData) => {
+    if (!url) {
+      return Promise.reject(new Error("No URL provided"));
+    }
+    setupInterceptors();
+    // Don't set Content-Type header - axios will set it automatically with boundary
+    return apiClient.post(url, formData).then((res) => res.data);
   },
   put: (url: string | null | undefined, data?: Record<string, unknown>) => {
     if (!url) {
