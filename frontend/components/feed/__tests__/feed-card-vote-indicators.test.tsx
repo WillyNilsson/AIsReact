@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import { FeedCard } from "../feed-card";
+import { FeedCardWithImage as FeedCard } from "../feed-card-with-image";
 import { PostFeedItem, PostStatus } from "@/lib/types";
 import { usePostVoteStatus } from "@/lib/hooks/useVoteSync";
 

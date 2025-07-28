@@ -55,7 +55,9 @@ describe("JWT Token Rotation", () => {
       setLoading: jest.fn(),
       updateUser: jest.fn(),
       getTokenExpiry: jest.fn(() => new Date(Date.now() + 30 * 60 * 1000)),
-    };
+      isHydrated: true,
+      refreshUser: jest.fn(),
+    } as any;
 
     (useAuthStore.getState as jest.Mock).mockReturnValue(mockAuthStore);
   });

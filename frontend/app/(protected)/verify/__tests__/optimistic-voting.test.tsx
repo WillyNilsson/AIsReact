@@ -78,11 +78,13 @@ describe("VerifyPage - Optimistic Voting", () => {
     } as ReturnType<typeof useAuth>);
 
     mockUseVerificationQueue.mockReturnValue({
-      posts: [mockPost],
+      data: { results: [mockPost], count: 1, next: null, previous: null },
       isLoading: false,
       error: null,
+      isError: false,
+      isSuccess: true,
       mutate: mockMutate,
-    });
+    } as any);
 
     mockUseOptimisticVote.mockReturnValue({
       vote: mockVote,
@@ -216,11 +218,13 @@ describe("VerifyPage - Optimistic Voting", () => {
     };
 
     mockUseVerificationQueue.mockReturnValue({
-      posts: [votedPost],
+      data: { results: [votedPost], count: 1, next: null, previous: null },
       isLoading: false,
       error: null,
+      isError: false,
+      isSuccess: true,
       mutate: mockMutate,
-    });
+    } as any);
 
     render(<VerifyPage />);
 
@@ -300,11 +304,13 @@ describe("VerifyPage - Optimistic Voting", () => {
     ];
 
     mockUseVerificationQueue.mockReturnValue({
-      posts,
+      data: { results: posts, count: posts.length, next: null, previous: null },
       isLoading: false,
       error: null,
+      isError: false,
+      isSuccess: true,
       mutate: mockMutate,
-    });
+    } as any);
 
     mockVote.mockResolvedValue(undefined);
 
@@ -331,11 +337,13 @@ describe("VerifyPage - Optimistic Voting", () => {
 
   it("should handle empty verification queue", () => {
     mockUseVerificationQueue.mockReturnValue({
-      posts: [],
+      data: { results: [], count: 0, next: null, previous: null },
       isLoading: false,
       error: null,
+      isError: false,
+      isSuccess: true,
       mutate: mockMutate,
-    });
+    } as any);
 
     render(<VerifyPage />);
 

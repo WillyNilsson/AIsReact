@@ -67,8 +67,8 @@ describe("Moderation Flow Integration", () => {
     mockAuthStore(true, {
       ...mockApiResponses.login.success.user,
       is_admin: true,
-    });
-  });
+    }) as any;
+  }) as any;
 
   describe("Moderation Queue", () => {
     it("should display posts awaiting moderation with risk indicators", async () => {
@@ -96,7 +96,7 @@ describe("Moderation Flow Integration", () => {
             },
           ],
         },
-      });
+      }) as any;
 
       // Mock moderation page
       const MockModeratePage = () => {
@@ -128,7 +128,7 @@ describe("Moderation Flow Integration", () => {
 
       render(<MockModeratePage />);
 
-      await waitFor(() => {
+      (await waitFor(() => {
         // Check post display
         expect(screen.getByText(/Post Under Review/i)).toBeInTheDocument();
         expect(screen.getByText(/user123/i)).toBeInTheDocument();
@@ -136,8 +136,8 @@ describe("Moderation Flow Integration", () => {
         // Check risk indicators
         expect(screen.getByText(/Risk Score: 70%/i)).toBeInTheDocument();
         expect(screen.getByText(/potentially_harmful/i)).toBeInTheDocument();
-      });
-    });
+      })) as any;
+    }) as any;
 
     it("should show AI moderation details when expanded", async () => {
       const user = setupUser();
@@ -203,7 +203,7 @@ describe("Moderation Flow Integration", () => {
       await user.click(screen.getByRole("button", { name: /show details/i }));
 
       // Check expanded content
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(
           screen.getByText(/Full content of the post/i),
         ).toBeInTheDocument();
@@ -212,9 +212,9 @@ describe("Moderation Flow Integration", () => {
         expect(
           screen.getByText(/potentially violent language/i),
         ).toBeInTheDocument();
-      });
-    });
-  });
+      })) as any;
+    }) as any;
+  }) as any;
 
   describe("Moderation Actions", () => {
     it("should approve post and move to verification queue", async () => {
@@ -227,7 +227,7 @@ describe("Moderation Flow Integration", () => {
             post: { id: 1, status: "pending_verification" },
           },
         },
-      });
+      }) as any;
 
       const ModeratePost = () => {
         const [posts, setPosts] = React.useState([
@@ -236,13 +236,13 @@ describe("Moderation Flow Integration", () => {
         const [message, setMessage] = React.useState("");
 
         const handleApprove = async (postId: number) => {
-          const response = await fetch(`/api/moderation/${postId}/approve`, {
+          const response = (await fetch(`/api/moderation/${postId}/approve`, {
             method: "POST",
             headers: {
               Authorization: "Bearer mock-jwt-token",
               "Content-Type": "application/json",
             },
-          });
+          })) as any;
 
           if (response.ok) {
             setPosts(posts.filter((p) => p.id !== postId));
@@ -268,15 +268,15 @@ describe("Moderation Flow Integration", () => {
 
       await user.click(screen.getByRole("button", { name: /approve/i }));
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(
           screen.getByText(/Post approved and sent to verification/i),
         ).toBeInTheDocument();
         expect(
           screen.getByText(/No more posts to moderate/i),
         ).toBeInTheDocument();
-      });
-    });
+      })) as any;
+    }) as any;
 
     it("should reject post with reason and notify author", async () => {
       const user = setupUser();
@@ -288,7 +288,7 @@ describe("Moderation Flow Integration", () => {
             notification_sent: true,
           },
         },
-      });
+      }) as any;
 
       const RejectPost = () => {
         const [showRejectForm, setShowRejectForm] = React.useState(false);
@@ -297,7 +297,7 @@ describe("Moderation Flow Integration", () => {
         const [rejected, setRejected] = React.useState(false);
 
         const handleReject = async () => {
-          const response = await fetch("/api/moderation/1/reject", {
+          const response = (await fetch("/api/moderation/1/reject", {
             method: "POST",
             headers: {
               Authorization: "Bearer mock-jwt-token",
@@ -308,7 +308,7 @@ describe("Moderation Flow Integration", () => {
               additional_notes: additionalNotes,
               notify_author: true,
             }),
-          });
+          })) as any;
 
           if (response.ok) {
             setRejected(true);
@@ -372,12 +372,12 @@ describe("Moderation Flow Integration", () => {
         screen.getByRole("button", { name: /confirm rejection/i }),
       );
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(
           screen.getByText(/Post rejected successfully/i),
         ).toBeInTheDocument();
-      });
-    });
+      })) as any;
+    }) as any;
 
     it("should allow bulk moderation actions", async () => {
       const user = setupUser();
@@ -390,7 +390,7 @@ describe("Moderation Flow Integration", () => {
             failed: [],
           },
         },
-      });
+      }) as any;
 
       const BulkModeration = () => {
         const [posts] = React.useState([
@@ -402,7 +402,7 @@ describe("Moderation Flow Integration", () => {
         const [result, setResult] = React.useState<any>(null);
 
         const handleBulkAction = async (action: "approve" | "reject") => {
-          const response = await fetch("/api/moderation/bulk", {
+          const response = (await fetch("/api/moderation/bulk", {
             method: "POST",
             headers: {
               Authorization: "Bearer mock-jwt-token",
@@ -413,7 +413,7 @@ describe("Moderation Flow Integration", () => {
               action,
               reason: action === "reject" ? "bulk_rejection" : undefined,
             }),
-          });
+          })) as any;
 
           if (response.ok) {
             const data = await response.json();
@@ -488,13 +488,13 @@ describe("Moderation Flow Integration", () => {
         screen.getByRole("button", { name: /approve selected \(2\)/i }),
       );
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(
           screen.getByText(/Approved: 2, Rejected: 0/i),
         ).toBeInTheDocument();
-      });
-    });
-  });
+      })) as any;
+    }) as any;
+  }) as any;
 
   describe("Moderation Guidelines", () => {
     it("should display moderation guidelines and examples", async () => {
@@ -556,8 +556,8 @@ describe("Moderation Flow Integration", () => {
         screen.getByText(/hate speech or harassment/i),
       ).toBeInTheDocument();
       expect(screen.getByText(/Context and intent/i)).toBeInTheDocument();
-    });
-  });
+    }) as any;
+  }) as any;
 
   describe("Moderation History", () => {
     it("should track moderation decisions for audit", async () => {
@@ -584,7 +584,7 @@ describe("Moderation Flow Integration", () => {
             },
           ],
         },
-      });
+      }) as any;
 
       const ModerationHistory = () => {
         const [history, setHistory] = React.useState<any[]>([]);
@@ -628,14 +628,14 @@ describe("Moderation Flow Integration", () => {
 
       render(<ModerationHistory />);
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(
           screen.getByText(/Previously Moderated Post/i),
         ).toBeInTheDocument();
         expect(screen.getByText(/approved/i)).toBeInTheDocument();
         expect(screen.getByText(/Rejected Post/i)).toBeInTheDocument();
         expect(screen.getByText(/spam/i)).toBeInTheDocument();
-      });
-    });
-  });
-});
+      })) as any;
+    }) as any;
+  }) as any;
+}) as any;

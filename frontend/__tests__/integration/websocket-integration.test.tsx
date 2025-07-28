@@ -9,8 +9,20 @@ import {
   mockAuthStore,
 } from "@/lib/test-utils";
 import { WebSocketProvider } from "@/components/providers/websocket-provider";
-import FeedCard from "@/components/feed/feed-card";
+import { FeedCardWithImage } from "@/components/feed/feed-card-with-image";
 import { act } from "@testing-library/react";
+import { PostFeedItem } from "@/lib/types";
+
+// Helper to create PostFeedItem
+const createMockPost = (overrides: any = {}): PostFeedItem =>
+  ({
+    ...mockApiResponses.posts.list[0],
+    user: { id: 1, username: "testuser", role: "user" },
+    source_url: "https://example.com",
+    verification_score: 5,
+    verification_count: 10,
+    ...overrides,
+  }) as PostFeedItem;
 
 // Mock WebSocket
 class MockWebSocket {
@@ -73,21 +85,21 @@ describe("WebSocket Integration", () => {
     jest.clearAllMocks();
     mockAuthStore(true, mockApiResponses.login.success.user);
     mockWebSocket = null;
-  });
+  }) as any;
 
   afterEach(() => {
     if (mockWebSocket) {
       mockWebSocket.close();
     }
-  });
+  }) as any;
 
   describe("Real-time Vote Updates", () => {
     it("should update vote count in real-time when receiving WebSocket message", async () => {
-      const post = mockApiResponses.posts.list[0];
+      const post = createMockPost();
 
       render(
         <WebSocketProvider>
-          <FeedCard post={post} />
+          <FeedCardWithImage post={post} />
         </WebSocketProvider>,
       );
 
@@ -96,10 +108,10 @@ describe("WebSocket Integration", () => {
       expect(screen.getByRole("button", { name: /vote/i })).not.toBeDisabled();
 
       // Wait for WebSocket connection
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(mockWebSocket).toBeTruthy();
         expect(mockWebSocket?.readyState).toBe(1);
-      });
+      })) as any;
 
       // Simulate vote update from WebSocket
       act(() => {
@@ -108,15 +120,15 @@ describe("WebSocket Integration", () => {
           post_id: post.id,
           vote_count: 10,
           user_has_voted: true,
-        });
-      });
+        }) as any;
+      }) as any;
 
       // Check updated UI
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByText(/10 votes/i)).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /voted/i })).toBeDisabled();
-      });
-    });
+      })) as any;
+    }) as any;
 
     it("should handle WebSocket reconnection gracefully", async () => {
       render(
@@ -126,19 +138,19 @@ describe("WebSocket Integration", () => {
       );
 
       // Wait for initial connection
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(mockWebSocket?.readyState).toBe(1);
-      });
+      })) as any;
 
       // Simulate disconnect
       act(() => {
         mockWebSocket?.close();
-      });
+      }) as any;
 
       // Should show connection status
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByText(/reconnecting/i)).toBeInTheDocument();
-      });
+      })) as any;
 
       // Simulate reconnection
       act(() => {
@@ -149,42 +161,42 @@ describe("WebSocket Integration", () => {
 
         // Trigger reconnect by simulating timer
         jest.advanceTimersByTime(5000);
-      });
+      }) as any;
 
       // Should reconnect
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.queryByText(/reconnecting/i)).not.toBeInTheDocument();
-      });
-    });
+      })) as any;
+    }) as any;
 
     it("should queue messages during disconnection and process on reconnect", async () => {
       const user = setupUser();
-      const post = mockApiResponses.posts.list[0];
+      const post = createMockPost();
 
       global.fetch = mockFetch({
         "POST /api/posts/1/vote": {
           data: mockApiResponses.verification.vote.success,
         },
-      });
+      }) as any;
 
       render(
         <WebSocketProvider>
-          <FeedCard post={post} />
+          <FeedCardWithImage post={post} />
         </WebSocketProvider>,
       );
 
       // Wait for WebSocket to be created
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(mockWebSocket).toBeTruthy();
-      });
+      })) as any;
 
       // Disconnect WebSocket
       act(() => {
         mockWebSocket?.close();
-      });
+      }) as any;
 
       // Vote while disconnected
-      const voteButton = screen.getByRole("button", { name: /vote/i });
+      const voteButton = screen.getByRole("button", { name: /vote/i }) as any;
       await user.click(voteButton);
 
       // Should show optimistic update
@@ -195,25 +207,25 @@ describe("WebSocket Integration", () => {
         const newWs = new MockWebSocket("ws://localhost:8000/ws");
         mockWebSocket = newWs;
         global.WebSocket = jest.fn().mockReturnValue(newWs) as any;
-      });
+      }) as any;
 
       // Should sync state after reconnection
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
           expect.stringContaining("/api/posts/1/vote"),
           expect.any(Object),
         );
-      });
-    });
-  });
+      })) as any;
+    }) as any;
+  }) as any;
 
   describe("Real-time AI Analysis Updates", () => {
     it("should show AI analysis progress in real-time", async () => {
-      const post = { ...mockApiResponses.posts.list[0], status: "analyzing" };
+      const post = createMockPost({ status: "analyzing" });
 
       render(
         <WebSocketProvider>
-          <FeedCard post={post} />
+          <FeedCardWithImage post={post} />
         </WebSocketProvider>,
       );
 
@@ -221,9 +233,9 @@ describe("WebSocket Integration", () => {
       expect(screen.getByText(/AI Analysis in Progress/i)).toBeInTheDocument();
 
       // Wait for WebSocket connection
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(mockWebSocket?.readyState).toBe(1);
-      });
+      })) as any;
 
       // Simulate progress update
       act(() => {
@@ -237,14 +249,14 @@ describe("WebSocket Integration", () => {
             xai: { status: "pending", progress: 0 },
             deepseek: { status: "pending", progress: 0 },
           },
-        });
-      });
+        }) as any;
+      }) as any;
 
       // Should update progress display
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByText(/OpenAI: Complete/i)).toBeInTheDocument();
         expect(screen.getByText(/Anthropic: 50%/i)).toBeInTheDocument();
-      });
+      })) as any;
 
       // Simulate completion
       act(() => {
@@ -252,31 +264,31 @@ describe("WebSocket Integration", () => {
           type: "ai_analysis_complete",
           post_id: post.id,
           status: "verified",
-        });
-      });
+        }) as any;
+      }) as any;
 
       // Should show completion
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(
           screen.queryByText(/AI Analysis in Progress/i),
         ).not.toBeInTheDocument();
         expect(screen.getByText(/View AI Responses/i)).toBeInTheDocument();
-      });
-    });
+      })) as any;
+    }) as any;
 
     it("should handle AI analysis errors gracefully", async () => {
-      const post = { ...mockApiResponses.posts.list[0], status: "analyzing" };
+      const post = createMockPost({ status: "analyzing" });
 
       render(
         <WebSocketProvider>
-          <FeedCard post={post} />
+          <FeedCardWithImage post={post} />
         </WebSocketProvider>,
       );
 
       // Wait for WebSocket
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(mockWebSocket?.readyState).toBe(1);
-      });
+      })) as any;
 
       // Simulate error
       act(() => {
@@ -291,41 +303,43 @@ describe("WebSocket Integration", () => {
             xai: { status: "failed", error: "Invalid API key" },
             deepseek: { status: "failed", error: "Network error" },
           },
-        });
-      });
+        }) as any;
+      }) as any;
 
       // Should show error state
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByText(/AI Analysis Failed/i)).toBeInTheDocument();
         expect(
           screen.getByText(/All AI providers failed/i),
         ).toBeInTheDocument();
-      });
-    });
-  });
+      })) as any;
+    }) as any;
+  }) as any;
 
   describe("Multiple Component Synchronization", () => {
     it("should update multiple components showing same post", async () => {
-      const post = mockApiResponses.posts.list[0];
+      const post = createMockPost();
 
       render(
         <WebSocketProvider>
           <div>
-            <FeedCard post={post} />
-            <FeedCard post={post} />
+            <FeedCardWithImage post={post} />
+            <FeedCardWithImage post={post} />
           </div>
         </WebSocketProvider>,
       );
 
       // Both should show initial state
-      const voteButtons = screen.getAllByRole("button", { name: /vote/i });
+      const voteButtons = screen.getAllByRole("button", {
+        name: /vote/i,
+      }) as any;
       expect(voteButtons).toHaveLength(2);
       expect(screen.getAllByText(/5 votes/i)).toHaveLength(2);
 
       // Wait for WebSocket
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(mockWebSocket?.readyState).toBe(1);
-      });
+      })) as any;
 
       // Simulate vote update
       act(() => {
@@ -334,28 +348,28 @@ describe("WebSocket Integration", () => {
           post_id: post.id,
           vote_count: 8,
           user_has_voted: false,
-        });
-      });
+        }) as any;
+      }) as any;
 
       // Both components should update
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getAllByText(/8 votes/i)).toHaveLength(2);
-      });
-    });
+      })) as any;
+    }) as any;
 
     it("should handle rapid WebSocket messages without race conditions", async () => {
-      const post = mockApiResponses.posts.list[0];
+      const post = createMockPost();
 
       render(
         <WebSocketProvider>
-          <FeedCard post={post} />
+          <FeedCardWithImage post={post} />
         </WebSocketProvider>,
       );
 
       // Wait for WebSocket
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(mockWebSocket?.readyState).toBe(1);
-      });
+      })) as any;
 
       // Send rapid updates
       act(() => {
@@ -365,16 +379,16 @@ describe("WebSocket Integration", () => {
             post_id: post.id,
             vote_count: i,
             user_has_voted: false,
-          });
+          }) as any;
         }
-      });
+      }) as any;
 
       // Should show final state
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByText(/15 votes/i)).toBeInTheDocument();
-      });
-    });
-  });
+      })) as any;
+    }) as any;
+  }) as any;
 
   describe("Error Recovery", () => {
     it("should reconnect with exponential backoff on connection failure", async () => {
@@ -387,9 +401,9 @@ describe("WebSocket Integration", () => {
       );
 
       // Wait for component to mount
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByText("Test Content")).toBeInTheDocument();
-      });
+      })) as any;
 
       // Simulate multiple failures
       const reconnectAttempts: number[] = [];
@@ -406,30 +420,30 @@ describe("WebSocket Integration", () => {
       act(() => {
         mockWebSocket?.simulateError();
         mockWebSocket?.close();
-      });
+      }) as any;
 
       // Should show reconnecting status
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByText(/reconnecting/i)).toBeInTheDocument();
-      });
+      })) as any;
 
       // Should retry with backoff
       act(() => {
         jest.advanceTimersByTime(1000); // First retry at 1s
-      });
+      }) as any;
 
       act(() => {
         jest.advanceTimersByTime(2000); // Second retry at 2s
-      });
+      }) as any;
 
       act(() => {
         jest.advanceTimersByTime(4000); // Third retry at 4s
-      });
+      }) as any;
 
       expect(reconnectAttempts.length).toBeGreaterThanOrEqual(3);
 
       jest.useRealTimers();
-    });
+    }) as any;
 
     it("should show offline banner when connection is lost", async () => {
       render(
@@ -439,33 +453,33 @@ describe("WebSocket Integration", () => {
       );
 
       // Wait for WebSocket to be created
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(mockWebSocket).toBeTruthy();
-      });
+      })) as any;
 
       // Simulate network offline
       act(() => {
         window.dispatchEvent(new Event("offline"));
-      });
+      }) as any;
 
       // Should show offline banner
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(
           screen.getByText(/You are currently offline/i),
         ).toBeInTheDocument();
-      });
+      })) as any;
 
       // Simulate network online
       act(() => {
         window.dispatchEvent(new Event("online"));
-      });
+      }) as any;
 
       // Should hide offline banner
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(
           screen.queryByText(/You are currently offline/i),
         ).not.toBeInTheDocument();
-      });
-    });
-  });
-});
+      })) as any;
+    }) as any;
+  }) as any;
+}) as any;

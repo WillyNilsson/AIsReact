@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { VerificationPostCard } from "../VerificationPostCard";
-import { PostFeedItem } from "@/lib/types";
+import { PostFeedItem, PostStatus } from "@/lib/types";
 
 // Mock the hooks
 jest.mock("@/lib/hooks/useVoteSync", () => ({
@@ -10,20 +10,22 @@ jest.mock("@/lib/hooks/useVoteSync", () => ({
 describe("VerificationPostCard", () => {
   const mockPost: PostFeedItem = {
     id: 123,
+    title: "Test Post Title",
     content: "Test content",
     source_url: "https://example.com",
     created_at: new Date().toISOString(),
     verification_score: 0.75,
+    verification_count: 10,
     user: {
       id: 1,
       username: "testuser",
+      role: "user",
       email: "test@example.com",
     },
     user_vote: null,
-    verification_status: "pending",
+    status: PostStatus.PENDING_VERIFICATION,
     rejection_reason: null,
     image_url: null,
-    ai_responses: [],
   };
 
   const mockProps = {

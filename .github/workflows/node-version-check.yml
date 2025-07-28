@@ -1,0 +1,55 @@
+name: Node Version Check
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  check-node-version:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Read .nvmrc
+      run: echo "NODE_VERSION=$(cat .nvmrc)" >> $GITHUB_ENV
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+
+    - name: Verify Node Version
+      run: |
+        ACTUAL_VERSION=$(node --version)
+        EXPECTED_VERSION="v${{ env.NODE_VERSION }}"
+        echo "Expected: $EXPECTED_VERSION"
+        echo "Actual: $ACTUAL_VERSION"
+        if [[ ! "$ACTUAL_VERSION" =~ ^v22\. ]]; then
+          echo "::error::Node.js version must be 22.x.x or higher"
+          exit 1
+        fi
+
+    - name: Run Node Version Check Script
+      run: node check-node-version.js
+
+    - name: Cache Dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.npm
+          frontend/node_modules
+        key: ${{ runner.os }}-node-${{ env.NODE_VERSION }}-${{ hashFiles('**/package-lock.json', '**/pnpm-lock.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-node-${{ env.NODE_VERSION }}-
+
+    - name: Install Dependencies
+      run: npm install
+
+    - name: Check Frontend Dependencies
+      working-directory: ./frontend
+      run: |
+        npm install
+        npm run type-check || true

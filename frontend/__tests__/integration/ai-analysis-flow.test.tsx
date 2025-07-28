@@ -9,7 +9,7 @@ import {
   act,
 } from "@/lib/test-utils";
 import PostDetailPage from "@/app/posts/[id]/page";
-import AIResponsesView from "@/components/ai/ai-responses-view";
+import { AIResponsesView } from "@/components/ai/ai-responses-view";
 
 const mockPush = jest.fn();
 
@@ -70,16 +70,16 @@ describe("AI Analysis Flow Integration", () => {
         "GET /api/posts/1/ai-status": {
           data: mockApiResponses.aiAnalysis.inProgress,
         },
-      });
+      }) as any;
 
-      render(<PostDetailPage params={{ id: "1" }} />);
+      render(<PostDetailPage />);
 
       // Wait for post to load
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(
           screen.getByText("Test Post for AI Analysis"),
         ).toBeInTheDocument();
-      });
+      })) as any;
 
       // Find and click analyze button
       const analyzeButton = screen.getByRole("button", {
@@ -116,7 +116,7 @@ describe("AI Analysis Flow Integration", () => {
             ok: true,
             status: 200,
             json: async () => mockPost,
-          });
+          }) as any;
         }
 
         if (url.includes("/ai-status")) {
@@ -131,11 +131,18 @@ describe("AI Analysis Flow Integration", () => {
             ok: true,
             status: 200,
             json: async () => status,
-          });
+          }) as any;
         }
-      });
 
-      render(<AIResponsesView postId={1} />);
+        // Default response
+        return Promise.resolve({
+          ok: false,
+          status: 404,
+          json: async () => ({ detail: "Not found" }),
+        }) as any;
+      }) as any;
+
+      render(<AIResponsesView postId={1} responses={[]} />);
 
       // Initial poll
       await waitFor(() => {
@@ -182,11 +189,11 @@ describe("AI Analysis Flow Integration", () => {
             },
           },
         },
-      });
+      }) as any;
 
-      render(<AIResponsesView postId={1} />);
+      render(<AIResponsesView postId={1} responses={[]} />);
 
-      await waitFor(() => {
+      (await waitFor(() => {
         // Should show error for failed provider
         expect(screen.getByText(/openai.*failed/i)).toBeInTheDocument();
         expect(screen.getByText(/rate limit exceeded/i)).toBeInTheDocument();
@@ -198,7 +205,7 @@ describe("AI Analysis Flow Integration", () => {
         expect(
           screen.getByText(/google analysis of the post/i),
         ).toBeInTheDocument();
-      });
+      })) as any;
     });
   });
 
@@ -225,13 +232,13 @@ describe("AI Analysis Flow Integration", () => {
         "GET /api/posts/1/ai-status": {
           data: mockApiResponses.aiAnalysis.inProgress,
         },
-      });
+      }) as any;
 
-      render(<AIResponsesView postId={1} />);
+      render(<AIResponsesView postId={1} responses={[]} />);
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByText(/processing/i)).toBeInTheDocument();
-      });
+      })) as any;
 
       // Simulate WebSocket message
       act(() => {
@@ -266,7 +273,7 @@ describe("AI Analysis Flow Integration", () => {
 
       global.WebSocket = jest.fn(() => mockWebSocket) as any;
 
-      render(<AIResponsesView postId={1} />);
+      render(<AIResponsesView postId={1} responses={[]} />);
 
       // Should show reconnecting state
       await waitFor(() => {
@@ -285,8 +292,8 @@ describe("AI Analysis Flow Integration", () => {
             ai_responses: Object.values(
               mockApiResponses.aiAnalysis.completed.providers,
             )
-              .filter((p) => p.status === "completed")
-              .map((p, i) => ({
+              .filter((p: any) => p.status === "completed")
+              .map((p: any, i) => ({
                 id: i + 1,
                 provider: ["openai", "anthropic", "google", "deepseek"][i],
                 response: p.response,
@@ -294,15 +301,15 @@ describe("AI Analysis Flow Integration", () => {
               })),
           },
         },
-      });
+      }) as any;
 
-      render(<PostDetailPage params={{ id: "1" }} />);
+      render(<PostDetailPage />);
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(
           screen.getByText("Test Post for AI Analysis"),
         ).toBeInTheDocument();
-      });
+      })) as any;
 
       // Find and click compare button
       const compareButton = screen.getByRole("button", {
@@ -337,12 +344,12 @@ describe("AI Analysis Flow Integration", () => {
             ai_responses: mockResponses,
           },
         },
-      });
+      }) as any;
 
       const ComparePage = require("@/app/posts/[id]/compare/page").default;
       render(<ComparePage params={{ id: "1" }} />);
 
-      await waitFor(() => {
+      (await waitFor(() => {
         // Should show both responses
         expect(
           screen.getByText(/openai thinks this is significant/i),
@@ -354,7 +361,7 @@ describe("AI Analysis Flow Integration", () => {
         // Should show provider labels
         expect(screen.getByText("OpenAI")).toBeInTheDocument();
         expect(screen.getByText("Anthropic")).toBeInTheDocument();
-      });
+      })) as any;
     });
   });
 
@@ -377,14 +384,14 @@ describe("AI Analysis Flow Integration", () => {
             started_at: new Date(Date.now() - 15 * 60 * 1000).toISOString(), // 15 minutes ago
           },
         },
-      });
+      }) as any;
 
-      render(<AIResponsesView postId={1} />);
+      render(<AIResponsesView postId={1} responses={[]} />);
 
       // Fast forward past timeout threshold (10 minutes)
-      await act(async () => {
+      (await act(async () => {
         jest.advanceTimersByTime(11 * 60 * 1000);
-      });
+      })) as any;
 
       await waitFor(() => {
         expect(screen.getByText(/analysis timed out/i)).toBeInTheDocument();
@@ -420,13 +427,13 @@ describe("AI Analysis Flow Integration", () => {
             task_id: "task-456",
           },
         },
-      });
+      }) as any;
 
-      render(<AIResponsesView postId={1} />);
+      render(<AIResponsesView postId={1} responses={[]} />);
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByText(/all providers failed/i)).toBeInTheDocument();
-      });
+      })) as any;
 
       const retryButton = screen.getByRole("button", {
         name: /retry analysis/i,
@@ -466,11 +473,11 @@ describe("AI Analysis Flow Integration", () => {
             },
           },
         },
-      });
+      }) as any;
 
-      render(<AIResponsesView postId={1} />);
+      render(<AIResponsesView postId={1} responses={[]} />);
 
-      await waitFor(() => {
+      (await waitFor(() => {
         // Should show completed analyses
         expect(screen.getByText(/openai analysis/i)).toBeInTheDocument();
         expect(screen.getByText(/anthropic analysis/i)).toBeInTheDocument();
@@ -486,7 +493,7 @@ describe("AI Analysis Flow Integration", () => {
         expect(
           screen.getByText(/partial results available/i),
         ).toBeInTheDocument();
-      });
+      })) as any;
     });
   });
 });

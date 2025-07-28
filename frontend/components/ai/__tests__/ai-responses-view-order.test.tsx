@@ -17,8 +17,7 @@ describe("AIResponsesView Model Order", () => {
     isSuccessful: boolean = true,
   ): AIResponse => ({
     id,
-    post: 1,
-    ai_model: modelName,
+    post_id: 1,
     model_name: modelName,
     response_data: isSuccessful
       ? {
@@ -30,8 +29,9 @@ describe("AIResponsesView Model Order", () => {
       : null,
     is_successful: isSuccessful,
     created_at: new Date().toISOString(),
-    response_time: 1.5,
-    metadata: {},
+    response_time_ms: 1500,
+    token_count: 100,
+    error_message: null,
   });
 
   it("displays AI responses in the correct order: ChatGPT, Gemini, Grok, DeepSeek, Claude", () => {
@@ -104,10 +104,7 @@ describe("AIResponsesView Model Order", () => {
     const responses = [
       createMockResponse(1, ""),
       createMockResponse(2, "gpt-4o-2024-08-06"),
-      {
-        ...createMockResponse(3, "gemini-2.5-pro"),
-        model_name: null,
-      } as AIResponse,
+      { ...createMockResponse(3, "gemini-2.5-pro"), model_name: null } as any,
     ];
 
     const { container } = render(<AIResponsesView responses={responses} />);

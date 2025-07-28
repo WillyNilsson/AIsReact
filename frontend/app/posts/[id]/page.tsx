@@ -11,7 +11,8 @@ import { usePost } from "@/hooks/usePost";
 import { useAuthStore } from "@/store/authStore";
 import { PostStatus } from "@/lib/types";
 import { useVerificationStats } from "@/hooks/useVerification";
-import { useOptimisticVote } from "@/lib/hooks/useOptimisticVote";
+// TEMPORARILY DISABLED: Community voting
+// import { useOptimisticVote } from "@/lib/hooks/useOptimisticVote";
 import { AIResponsesView } from "@/components/ai/ai-responses-view";
 import { Bell, Clock } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -57,9 +58,9 @@ function PostDetailContent() {
 
   // Get post data
   const { data: post, isLoading, error } = usePost(validPostId);
-  const { data: stats, refetch: _mutateStats } =
-    useVerificationStats(validPostId);
-  const { vote, isVoting } = useOptimisticVote();
+  const { data: stats } = useVerificationStats(validPostId);
+  // TEMPORARILY DISABLED: Community voting
+  // const { vote, isVoting } = useOptimisticVote();
 
   // Check if we should show polling status
   const shouldPoll =
@@ -401,21 +402,24 @@ function PostDetailContent() {
               This post is pending community verification. Help verify its
               accuracy!
             </p>
-            <VoteButtons
-              postId={post.id}
-              userVote={stats?.user_vote}
-              isVoting={isVoting}
-              onVote={async (voteValue) => {
-                try {
-                  await vote({
-                    postId: post.id,
-                    voteData: { vote: voteValue },
-                  });
-                } catch {
-                  // Error handled by useOptimisticVote
-                }
-              }}
-            />
+            {/* TEMPORARILY DISABLED: Community voting disabled due to copyright changes */}
+            <div className="relative">
+              <div className="opacity-50 pointer-events-none">
+                <VoteButtons
+                  postId={post.id}
+                  userVote={stats?.user_vote}
+                  isVoting={false}
+                  onVote={async () => {
+                    // Voting disabled
+                  }}
+                />
+              </div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-sm text-amber-400 bg-[#1a1b26]/90 px-3 py-1.5 rounded-lg border border-amber-500/30">
+                  Voting temporarily disabled
+                </span>
+              </div>
+            </div>
             {user?.role === "admin" && (
               <div className="mt-4">
                 <AdminApproveButton postId={post.id} className="w-full" />

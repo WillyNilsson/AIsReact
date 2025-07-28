@@ -9,9 +9,10 @@ import {
 } from "@/lib/test-utils";
 import SubmitPage from "@/app/(protected)/submit/page";
 import VerifyPage from "@/app/(protected)/verify/page";
-import FeedCard from "@/components/feed/feed-card";
+import { FeedCardWithImage } from "@/components/feed/feed-card-with-image";
 import { AuthForm } from "@/components/auth/auth-form";
 import { mockApiResponses } from "@/lib/test-utils";
+import { PostFeedItem } from "@/lib/types";
 
 const mockPush = jest.fn();
 
@@ -51,7 +52,7 @@ describe("Error Handling Integration", () => {
     jest.clearAllMocks();
     mockPush.mockClear();
     mockAuthStore(true, mockApiResponses.login.success.user);
-  });
+  }) as any;
 
   describe("Network Error Handling", () => {
     it("should handle network failure during post submission", async () => {
@@ -66,16 +67,18 @@ describe("Error Handling Integration", () => {
 
       const titleInput = screen.getByLabelText(/title/i);
       const contentTextarea = screen.getByLabelText(/content/i);
-      const submitButton = screen.getByRole("button", { name: /submit/i });
+      const submitButton = screen.getByRole("button", {
+        name: /submit/i,
+      }) as any;
 
       await user.type(titleInput, "Test Post");
       await user.type(contentTextarea, "Test content");
       await user.click(submitButton);
 
       // Should show error message
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByText(/Network request failed/i)).toBeInTheDocument();
-      });
+      })) as any;
 
       // Form should still be visible for retry
       expect(titleInput).toHaveValue("Test Post");
@@ -83,7 +86,7 @@ describe("Error Handling Integration", () => {
 
       // Should not redirect
       expect(mockPush).not.toHaveBeenCalled();
-    });
+    }) as any;
 
     it("should retry failed requests with exponential backoff", async () => {
       const user = setupUser();
@@ -99,8 +102,8 @@ describe("Error Handling Integration", () => {
           ok: true,
           status: 200,
           json: async () => mockApiResponses.posts.create.success,
-        });
-      });
+        }) as any;
+      }) as any;
 
       const RetryComponent = () => {
         const [loading, setLoading] = React.useState(false);
@@ -114,11 +117,11 @@ describe("Error Handling Integration", () => {
           let lastError;
           for (let i = 0; i < 3; i++) {
             try {
-              const response = await fetch("/api/posts", {
+              const response = (await fetch("/api/posts", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ title: "Test", content: "Content" }),
-              });
+              })) as any;
 
               if (response.ok) {
                 setSuccess(true);
@@ -134,7 +137,7 @@ describe("Error Handling Integration", () => {
             }
           }
 
-          setError(lastError?.message || "Failed after 3 attempts");
+          setError((lastError as Error)?.message || "Failed after 3 attempts");
           setLoading(false);
         };
 
@@ -159,19 +162,19 @@ describe("Error Handling Integration", () => {
       expect(screen.getByText(/Retrying/i)).toBeInTheDocument();
 
       // Fast-forward through retries
-      await waitFor(() => {
+      (await waitFor(() => {
         jest.advanceTimersByTime(7000); // 1s + 2s + 4s
-      });
+      })) as any;
 
       // Should succeed after retries
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByText(/Success!/i)).toBeInTheDocument();
-      });
+      })) as any;
 
       expect(global.fetch).toHaveBeenCalledTimes(3);
 
       jest.useRealTimers();
-    });
+    }) as any;
 
     it("should handle timeout errors gracefully", async () => {
       const user = setupUser();
@@ -180,8 +183,8 @@ describe("Error Handling Integration", () => {
       global.fetch = jest.fn().mockImplementation(() => {
         return new Promise((_, reject) => {
           setTimeout(() => reject(new Error("Request timeout")), 100);
-        });
-      });
+        }) as any;
+      }) as any;
 
       const TimeoutComponent = () => {
         const [loading, setLoading] = React.useState(false);
@@ -195,12 +198,12 @@ describe("Error Handling Integration", () => {
           const timeoutId = setTimeout(() => controller.abort(), 5000);
 
           try {
-            await fetch("/api/posts", {
+            (await fetch("/api/posts", {
               signal: controller.signal,
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({ title: "Test", content: "Content" }),
-            });
+            })) as any;
           } catch (err: any) {
             if (err.name === "AbortError") {
               setError("Request timed out. Please try again.");
@@ -226,11 +229,11 @@ describe("Error Handling Integration", () => {
 
       await user.click(screen.getByRole("button", { name: /make request/i }));
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByText(/Request timeout/i)).toBeInTheDocument();
-      });
-    });
-  });
+      })) as any;
+    }) as any;
+  }) as any;
 
   describe("Session Timeout Handling", () => {
     it("should handle session expiry during form submission", async () => {
@@ -242,13 +245,15 @@ describe("Error Handling Integration", () => {
           error: { detail: "Token expired" },
           status: 401,
         },
-      });
+      }) as any;
 
       render(<SubmitPage />);
 
       const titleInput = screen.getByLabelText(/title/i);
       const contentTextarea = screen.getByLabelText(/content/i);
-      const submitButton = screen.getByRole("button", { name: /submit/i });
+      const submitButton = screen.getByRole("button", {
+        name: /submit/i,
+      }) as any;
 
       await user.type(titleInput, "Test Post");
       await user.type(contentTextarea, "Test content");
@@ -259,15 +264,15 @@ describe("Error Handling Integration", () => {
       await user.click(submitButton);
 
       // Should show session expired message
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByText(/session expired/i)).toBeInTheDocument();
-      });
+      })) as any;
 
       // Should redirect to login
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(mockPush).toHaveBeenCalledWith("/auth/login?redirect=/submit");
-      });
-    });
+      })) as any;
+    }) as any;
 
     it("should preserve form data after session refresh", async () => {
       const user = setupUser();
@@ -333,12 +338,12 @@ describe("Error Handling Integration", () => {
       render(<FormWithDraft />);
 
       // Should restore draft
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByDisplayValue("Preserved Title")).toBeInTheDocument();
         expect(
           screen.getByDisplayValue("Preserved Content"),
         ).toBeInTheDocument();
-      });
+      })) as any;
 
       // Type new content
       const titleInput = screen.getByPlaceholderText(/title/i);
@@ -350,17 +355,25 @@ describe("Error Handling Integration", () => {
         "post-draft",
         expect.stringContaining("Updated Title"),
       );
-    });
-  });
+    }) as any;
+  }) as any;
 
   describe("Concurrent Update Conflicts", () => {
     it("should handle optimistic update conflicts", async () => {
       const user = setupUser();
-      const post = {
+      const post: PostFeedItem = {
         ...mockApiResponses.posts.list[0],
         vote_count: 5,
         has_user_voted: false,
-      };
+        user: {
+          id: 1,
+          username: "testuser",
+          role: "user",
+        },
+        source_url: "https://example.com",
+        verification_score: 5,
+        verification_count: 10,
+      } as PostFeedItem;
 
       // Mock conflicting server response
       global.fetch = mockFetch({
@@ -372,25 +385,25 @@ describe("Error Handling Integration", () => {
           },
           status: 409,
         },
-      });
+      }) as any;
 
-      render(<FeedCard post={post} />);
+      render(<FeedCardWithImage post={post} />);
 
       // Initial state
       expect(screen.getByText(/5 votes/i)).toBeInTheDocument();
 
-      const voteButton = screen.getByRole("button", { name: /vote/i });
+      const voteButton = screen.getByRole("button", { name: /vote/i }) as any;
       await user.click(voteButton);
 
       // Should show optimistic update briefly
       expect(screen.getByText(/6 votes/i)).toBeInTheDocument();
 
       // Should revert and show server state
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByText(/10 votes/i)).toBeInTheDocument();
         expect(screen.getByRole("button", { name: /voted/i })).toBeDisabled();
-      });
-    });
+      })) as any;
+    }) as any;
 
     it("should handle race conditions in rapid voting", async () => {
       const user = setupUser();
@@ -409,15 +422,15 @@ describe("Error Handling Integration", () => {
                   message: "Vote recorded",
                   new_vote_count: voteCount,
                 }),
-              });
+              }) as any;
             }, 100);
-          });
+          }) as any;
         }
         return Promise.resolve({
           ok: true,
           json: async () => ({}),
-        });
-      });
+        }) as any;
+      }) as any;
 
       const RapidVoteComponent = () => {
         const [votes, setVotes] = React.useState(5);
@@ -435,10 +448,10 @@ describe("Error Handling Integration", () => {
           // Queue votes to prevent race conditions
           voteQueue.current = voteQueue.current.then(async () => {
             try {
-              const response = await fetch("/api/posts/1/vote", {
+              const response = (await fetch("/api/posts/1/vote", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-              });
+              })) as any;
               const data = await response.json();
               setVotes(data.new_vote_count);
             } catch (error) {
@@ -446,7 +459,7 @@ describe("Error Handling Integration", () => {
             } finally {
               setIsVoting(false);
             }
-          });
+          }) as any;
         };
 
         return (
@@ -461,7 +474,7 @@ describe("Error Handling Integration", () => {
 
       render(<RapidVoteComponent />);
 
-      const voteButton = screen.getByRole("button", { name: /vote/i });
+      const voteButton = screen.getByRole("button", { name: /vote/i }) as any;
 
       // Rapid clicks
       await user.click(voteButton);
@@ -469,9 +482,9 @@ describe("Error Handling Integration", () => {
       await user.click(voteButton);
 
       // Should only process one vote at a time
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByText(/voting/i)).toBeInTheDocument();
-      });
+      })) as any;
 
       // Final state should be accurate
       await waitFor(
@@ -481,8 +494,8 @@ describe("Error Handling Integration", () => {
         },
         { timeout: 500 },
       );
-    });
-  });
+    }) as any;
+  }) as any;
 
   describe("Form Validation Errors", () => {
     it("should show inline validation errors without losing form data", async () => {
@@ -492,8 +505,10 @@ describe("Error Handling Integration", () => {
         const [formData, setFormData] = React.useState({
           title: "",
           content: "",
-        });
-        const [errors, setErrors] = React.useState<Record<string, string>>({});
+        }) as any;
+        const [errors, setErrors] = React.useState<Record<string, string>>(
+          {},
+        ) as any;
 
         const validate = () => {
           const newErrors: Record<string, string> = {};
@@ -531,7 +546,7 @@ describe("Error Handling Integration", () => {
               <input
                 value={formData.title}
                 onChange={(e) => {
-                  setFormData({ ...formData, title: e.target.value });
+                  setFormData({ ...formData, title: e.target.value }) as any;
                   if (errors.title) {
                     validate();
                   }
@@ -545,7 +560,7 @@ describe("Error Handling Integration", () => {
               <textarea
                 value={formData.content}
                 onChange={(e) => {
-                  setFormData({ ...formData, content: e.target.value });
+                  setFormData({ ...formData, content: e.target.value }) as any;
                   if (errors.content) {
                     validate();
                   }
@@ -562,7 +577,9 @@ describe("Error Handling Integration", () => {
 
       render(<FormWithValidation />);
 
-      const submitButton = screen.getByRole("button", { name: /submit/i });
+      const submitButton = screen.getByRole("button", {
+        name: /submit/i,
+      }) as any;
 
       // Try empty submission
       await user.click(submitButton);
@@ -591,7 +608,7 @@ describe("Error Handling Integration", () => {
 
       // Errors should clear
       expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    });
+    }) as any;
 
     it("should handle server-side validation errors", async () => {
       const user = setupUser();
@@ -607,33 +624,35 @@ describe("Error Handling Integration", () => {
           },
           status: 422,
         },
-      });
+      }) as any;
 
       render(<SubmitPage />);
 
       const titleInput = screen.getByLabelText(/title/i);
       const contentTextarea = screen.getByLabelText(/content/i);
-      const submitButton = screen.getByRole("button", { name: /submit/i });
+      const submitButton = screen.getByRole("button", {
+        name: /submit/i,
+      }) as any;
 
       await user.type(titleInput, "Prohibited Title");
       await user.type(contentTextarea, "Duplicate content");
       await user.click(submitButton);
 
       // Should show server errors
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(
           screen.getByText(/Title contains prohibited words/i),
         ).toBeInTheDocument();
         expect(
           screen.getByText(/Content is too similar to existing post/i),
         ).toBeInTheDocument();
-      });
+      })) as any;
 
       // Form data should be preserved
       expect(titleInput).toHaveValue("Prohibited Title");
       expect(contentTextarea).toHaveValue("Duplicate content");
-    });
-  });
+    }) as any;
+  }) as any;
 
   describe("Error Recovery UI", () => {
     it("should provide clear recovery actions for errors", async () => {
@@ -653,7 +672,7 @@ describe("Error Handling Integration", () => {
               type === "network"
                 ? "Network connection lost"
                 : "Session expired",
-          });
+          }) as any;
         };
 
         const handleRetry = async () => {
@@ -718,9 +737,9 @@ describe("Error Handling Integration", () => {
 
       expect(screen.getByText(/retrying/i)).toBeInTheDocument();
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-      });
+      })) as any;
 
       // Test auth error recovery
       await user.click(
@@ -732,6 +751,6 @@ describe("Error Handling Integration", () => {
       await user.click(screen.getByRole("button", { name: /go to login/i }));
 
       expect(mockPush).toHaveBeenCalledWith("/auth/login");
-    });
-  });
-});
+    }) as any;
+  }) as any;
+}) as any;

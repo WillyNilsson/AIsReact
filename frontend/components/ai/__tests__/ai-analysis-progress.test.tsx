@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { AIAnalysisProgress } from "../ai-analysis-progress";
 
 // Define type for global with websocket handlers
-interface GlobalWithWebSocketHandlers extends NodeJS.Global {
+interface GlobalWithWebSocketHandlers {
   websocketEventHandlers?: Record<string, (data: unknown) => void>;
 }
 

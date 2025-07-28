@@ -8,7 +8,7 @@ describe("AIResponseCard Edge Cases", () => {
     const emptyResponse: AIResponse = {
       id: 1,
       post_id: 1,
-      model_name: undefined,
+      model_name: "Unknown Model",
       response_data: null,
       is_successful: true,
       response_time_ms: 100,
@@ -32,7 +32,7 @@ describe("AIResponseCard Edge Cases", () => {
     const response: AIResponse = {
       id: 2,
       post_id: 1,
-      model_name: undefined,
+      model_name: "Unknown Model",
       response_data: {
         summary: "Test summary",
         historical_context: "Test history",
@@ -57,7 +57,7 @@ describe("AIResponseCard Edge Cases", () => {
       id: 3,
       post_id: 1,
       model_name: "gpt-4",
-      response_data: {},
+      response_data: { summary: "" },
       is_successful: true,
       response_time_ms: 100,
       token_count: 50,

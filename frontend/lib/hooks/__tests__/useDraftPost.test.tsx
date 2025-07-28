@@ -162,7 +162,7 @@ describe("useDraftPost", () => {
     const originalSetItem = localStorageMock.setItem;
     localStorageMock.setItem = jest.fn(() => {
       throw new Error("localStorage not available");
-    });
+    }) as any;
 
     const { result } = renderHook(() => useDraftPost());
 
@@ -195,7 +195,7 @@ describe("useDraftPost", () => {
         configurable: true,
       });
       throw error;
-    });
+    }) as any;
 
     act(() => {
       result.current.saveDraft({ title: "Large content" });

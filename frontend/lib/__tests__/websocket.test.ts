@@ -5,7 +5,7 @@ import { io, Socket } from "socket.io-client";
 jest.mock("socket.io-client");
 
 // Type-safe helper to access private properties
-type WebSocketPrivate = typeof websocket & {
+interface WebSocketPrivate {
   socket: Socket | null;
   reconnectAttempts: number;
   isIntentionalDisconnect: boolean;
@@ -19,7 +19,20 @@ type WebSocketPrivate = typeof websocket & {
     lastError?: string;
   };
   notifyListeners: (event: string, data: unknown) => void;
-};
+  connect: (token: string) => void;
+  disconnect: () => void;
+  subscribeToPost: (postId: number) => void;
+  unsubscribeFromPost: (postId: number) => void;
+  subscribeToFeed: (feedType: string) => void;
+  unsubscribeFromFeed: (feedType: string) => void;
+  subscribe: (event: string, callback: (data: any) => void) => () => void;
+  getConnectionState: () => {
+    status: string;
+    reconnectAttempts: number;
+    lastError?: string;
+  };
+  onStateChange: (callback: (state: unknown) => void) => () => void;
+}
 
 describe("WebSocketService", () => {
   let mockSocket: Partial<Socket>;
@@ -28,7 +41,7 @@ describe("WebSocketService", () => {
 
   beforeEach(() => {
     // Reset singleton state
-    ws = websocket as WebSocketPrivate;
+    ws = websocket as any as WebSocketPrivate;
     ws.socket = null;
     ws.reconnectAttempts = 0;
     ws.isIntentionalDisconnect = false;
@@ -183,7 +196,7 @@ describe("WebSocketService", () => {
           }
           return mockSocket;
         },
-      ) as jest.MockedFunction<Socket["on"]>;
+      ) as any;
 
       websocket.connect();
     });

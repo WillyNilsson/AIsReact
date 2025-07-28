@@ -28,7 +28,7 @@ jest.mock("next/link", () => {
 describe("AIResponsesView Edge Cases", () => {
   // Test with null responses
   it("handles null responses prop gracefully", () => {
-    render(<AIResponsesView responses={null as AIResponse[] | null} />);
+    render(<AIResponsesView responses={null as any} />);
 
     expect(
       screen.getByText("No AI analyses available yet."),
@@ -37,9 +37,7 @@ describe("AIResponsesView Edge Cases", () => {
 
   // Test with undefined responses
   it("handles undefined responses prop gracefully", () => {
-    render(
-      <AIResponsesView responses={undefined as AIResponse[] | undefined} />,
-    );
+    render(<AIResponsesView responses={undefined as any} />);
 
     expect(
       screen.getByText("No AI analyses available yet."),
@@ -85,7 +83,7 @@ describe("AIResponsesView Edge Cases", () => {
       },
     ] as (AIResponse | null | undefined)[];
 
-    render(<AIResponsesView responses={responses} />);
+    render(<AIResponsesView responses={responses as any} />);
 
     // Should only render valid responses
     expect(screen.getByText("AI Analyses")).toBeInTheDocument();

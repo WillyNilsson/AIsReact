@@ -45,9 +45,7 @@ describe("AIResponsesView Integration with AIAnalysisProgress", () => {
   });
 
   it("shows AIAnalysisProgress when analysis starts via WebSocket", async () => {
-    const { rerender } = render(
-      <AIResponsesView responses={[]} postId={1} showProgress={true} />,
-    );
+    const { rerender } = render(<AIResponsesView responses={[]} postId={1} />);
 
     // Initially no progress shown
     expect(
@@ -60,7 +58,7 @@ describe("AIResponsesView Integration with AIAnalysisProgress", () => {
     });
 
     // Re-render to see the state change
-    rerender(<AIResponsesView responses={[]} postId={1} showProgress={true} />);
+    rerender(<AIResponsesView responses={[]} postId={1} />);
 
     // Progress should now be shown
     const progress = screen.getByTestId("ai-analysis-progress");
@@ -69,16 +67,14 @@ describe("AIResponsesView Integration with AIAnalysisProgress", () => {
   });
 
   it("hides AIAnalysisProgress when onComplete is called", async () => {
-    const { rerender } = render(
-      <AIResponsesView responses={[]} postId={1} showProgress={true} />,
-    );
+    const { rerender } = render(<AIResponsesView responses={[]} postId={1} />);
 
     // Start analysis
     act(() => {
       mockWebSocketCallbacks["ai:analysisStarted"]({ postId: 1 });
     });
 
-    rerender(<AIResponsesView responses={[]} postId={1} showProgress={true} />);
+    rerender(<AIResponsesView responses={[]} postId={1} />);
 
     expect(screen.getByTestId("ai-analysis-progress")).toBeInTheDocument();
 
@@ -88,7 +84,7 @@ describe("AIResponsesView Integration with AIAnalysisProgress", () => {
       completeButton.click();
     });
 
-    rerender(<AIResponsesView responses={[]} postId={1} showProgress={true} />);
+    rerender(<AIResponsesView responses={[]} postId={1} />);
 
     // Progress should be hidden
     expect(
@@ -99,15 +95,7 @@ describe("AIResponsesView Integration with AIAnalysisProgress", () => {
   it("passes onRefresh prop to AIAnalysisProgress", () => {
     const onRefresh = jest.fn();
 
-    render(
-      <AIResponsesView
-        responses={[]}
-        postId={1}
-        showProgress={true}
-        onRefresh={onRefresh}
-        isLoading={false}
-      />,
-    );
+    render(<AIResponsesView responses={[]} postId={1} isLoading={false} />);
 
     // When no responses and not analyzing, should show progress with refresh
     const refreshButton = screen.getByText("Refresh");
@@ -121,16 +109,14 @@ describe("AIResponsesView Integration with AIAnalysisProgress", () => {
   });
 
   it("only shows progress for matching postId", () => {
-    const { rerender } = render(
-      <AIResponsesView responses={[]} postId={1} showProgress={true} />,
-    );
+    const { rerender } = render(<AIResponsesView responses={[]} postId={1} />);
 
     // Simulate WebSocket event for different post
     act(() => {
       mockWebSocketCallbacks["ai:analysisStarted"]({ postId: 2 });
     });
 
-    rerender(<AIResponsesView responses={[]} postId={1} showProgress={true} />);
+    rerender(<AIResponsesView responses={[]} postId={1} />);
 
     // Progress should not be shown for different post
     expect(
@@ -139,16 +125,14 @@ describe("AIResponsesView Integration with AIAnalysisProgress", () => {
   });
 
   it("shows progress during analysis and hides when responses arrive", () => {
-    const { rerender } = render(
-      <AIResponsesView responses={[]} postId={1} showProgress={true} />,
-    );
+    const { rerender } = render(<AIResponsesView responses={[]} postId={1} />);
 
     // Start analysis
     act(() => {
       mockWebSocketCallbacks["ai:analysisStarted"]({ postId: 1 });
     });
 
-    rerender(<AIResponsesView responses={[]} postId={1} showProgress={true} />);
+    rerender(<AIResponsesView responses={[]} postId={1} />);
 
     expect(screen.getByTestId("ai-analysis-progress")).toBeInTheDocument();
 
@@ -169,13 +153,7 @@ describe("AIResponsesView Integration with AIAnalysisProgress", () => {
       },
     ];
 
-    rerender(
-      <AIResponsesView
-        responses={mockResponses}
-        postId={1}
-        showProgress={true}
-      />,
-    );
+    rerender(<AIResponsesView responses={mockResponses} postId={1} />);
 
     // Progress should still show if isAnalyzing is true
     // But responses should also be displayed

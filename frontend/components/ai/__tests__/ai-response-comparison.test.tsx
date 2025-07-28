@@ -235,14 +235,14 @@ describe("AIResponseComparison Component", () => {
   });
 
   it("handles fallback responses", () => {
-    const fallbackResponses = [
+    const fallbackResponses: AIResponse[] = [
       ...mockResponses,
       {
         ...mockResponses[0],
         id: 5,
         model_name: "grok-3",
         response_data: {
-          ...mockResponses[0].response_data,
+          ...mockResponses[0].response_data!,
           _fallback: true,
         },
       },

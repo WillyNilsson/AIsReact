@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { AIResponsesView } from "@/components/ai/ai-responses-view";
-import { FeedCard } from "@/components/feed/feed-card";
+import { FeedCardWithImage } from "@/components/feed/feed-card-with-image";
 import { WebSocketProvider } from "@/components/providers/websocket-provider";
 import VerifyPage from "@/app/(protected)/verify/page";
 import { PostFeedItem, PostStatus } from "@/lib/types";
@@ -95,14 +95,7 @@ describe("Integration Tests", () => {
 
   describe("AIAnalysisProgress in AIResponsesView", () => {
     it("shows progress when analyzing", async () => {
-      render(
-        <AIResponsesView
-          responses={[]}
-          isLoading={false}
-          postId={1}
-          showProgress={true}
-        />,
-      );
+      render(<AIResponsesView responses={[]} isLoading={false} postId={1} />);
 
       // Initially no progress shown
       expect(
@@ -126,14 +119,7 @@ describe("Integration Tests", () => {
 
     it("handles empty state with trigger button", async () => {
       const onRefresh = jest.fn();
-      render(
-        <AIResponsesView
-          responses={[]}
-          isLoading={false}
-          postId={1}
-          onRefresh={onRefresh}
-        />,
-      );
+      render(<AIResponsesView responses={[]} isLoading={false} postId={1} />);
 
       expect(
         screen.getByText("No AI analyses available yet."),
@@ -174,11 +160,12 @@ describe("Integration Tests", () => {
       const votedPost = { ...mockPost, user_vote: true };
 
       jest.mocked(useVerificationModule.useVerificationQueue).mockReturnValue({
-        posts: [votedPost],
+        data: { results: [votedPost], count: 1, next: null, previous: null },
         isLoading: false,
         error: null,
-        mutate: jest.fn(),
-      });
+        isError: false,
+        isSuccess: true,
+      } as any);
 
       jest.mocked(useVoteSyncModule.usePostVoteStatus).mockReturnValue(true);
 
@@ -198,14 +185,14 @@ describe("Integration Tests", () => {
 
       jest.mocked(useVoteSyncModule.usePostVoteStatus).mockReturnValue(true);
 
-      render(<FeedCard post={votedPost} />);
+      render(<FeedCardWithImage post={votedPost} />);
 
       // VoteStatus component should be rendered
       expect(screen.getByText("Voted Accurate")).toBeInTheDocument();
     });
 
     it("does not show VoteStatus when user has not voted", () => {
-      render(<FeedCard post={mockPost} />);
+      render(<FeedCardWithImage post={mockPost} />);
 
       // VoteStatus component should not be rendered
       expect(screen.queryByText("Voted Accurate")).not.toBeInTheDocument();
@@ -217,7 +204,7 @@ describe("Integration Tests", () => {
 
       jest.mocked(useVoteSyncModule.usePostVoteStatus).mockReturnValue(false);
 
-      render(<FeedCard post={votedPost} />);
+      render(<FeedCardWithImage post={votedPost} />);
 
       expect(screen.getByText("Voted Inaccurate")).toBeInTheDocument();
     });

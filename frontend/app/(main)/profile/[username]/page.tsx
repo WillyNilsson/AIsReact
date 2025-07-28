@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -165,17 +164,6 @@ function ProfileContent() {
               <h1 className="text-4xl font-bold text-[#c0caf5]">
                 {profile.username}
               </h1>
-              {profile.role !== "user" && (
-                <Badge
-                  className={`px-3 py-1 ${
-                    profile.role === "admin"
-                      ? "bg-[#f7768e]/20 text-[#f7768e] border-[#f7768e]/30"
-                      : "bg-[#e0af68]/20 text-[#e0af68] border-[#e0af68]/30"
-                  }`}
-                >
-                  {profile.role === "admin" ? "Admin" : "Moderator"}
-                </Badge>
-              )}
               {isOwnProfile && (
                 <Link href="/profile/edit">
                   <Button

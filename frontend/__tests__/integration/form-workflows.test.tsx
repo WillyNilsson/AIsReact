@@ -143,7 +143,7 @@ describe("Form Workflows Integration", () => {
             json: async () => mockApiResponses.posts.create.success,
           });
         }
-      });
+      }) as any;
 
       const SubmitForm = () => {
         const [title, setTitle] = React.useState("");

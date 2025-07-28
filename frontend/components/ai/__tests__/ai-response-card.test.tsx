@@ -88,7 +88,7 @@ describe("AIResponseCard Component", () => {
 
     // Check summary is visible
     expect(
-      screen.getByText(mockResponse.response_data.summary),
+      screen.getByText(mockResponse.response_data!.summary),
     ).toBeInTheDocument();
 
     // Check collapsed preview shows partial text
@@ -161,7 +161,7 @@ describe("AIResponseCard Component", () => {
     await user.click(copyButton);
 
     expect(mockWriteText).toHaveBeenCalledWith(
-      mockResponse.response_data.summary,
+      mockResponse.response_data!.summary,
     );
     // Toast success would be called here
   });
@@ -280,7 +280,7 @@ describe("AIResponseCard Component", () => {
     const fallbackResponse: AIResponse = {
       ...mockResponse,
       response_data: {
-        ...mockResponse.response_data,
+        ...mockResponse.response_data!,
         _fallback: true,
       },
     };
@@ -327,7 +327,7 @@ describe("AIResponseCard Component", () => {
 
     // ReactMarkdown is mocked, but in real implementation it would render properly
     expect(
-      screen.getByText(markdownResponse.response_data.summary),
+      screen.getByText(markdownResponse.response_data!.summary),
     ).toBeInTheDocument();
   });
 

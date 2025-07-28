@@ -33,12 +33,13 @@ jest.mock("@/hooks/useAuth", () => ({
   useAuth: jest.fn(() => ({
     login: jest.fn().mockImplementation(async (data) => {
       if (data.username === "testuser" && data.password === "Test123!@#") {
+        // pragma: allowlist secret
         const authStore = require("@/store/authStore");
         authStore.useAuthStore.setState({
           isAuthenticated: true,
           user: mockApiResponses.login.success.user,
           token: "mock-jwt-token",
-        });
+        }) as any;
         return { success: true };
       }
       return { success: false, error: "Invalid credentials" };
@@ -86,7 +87,7 @@ describe("Complete User Journey Integration", () => {
     mockPush.mockClear();
     mockReplace.mockClear();
     mockAuthStore(false);
-  });
+  }) as any;
 
   describe("New User Journey: Register → Verify Email → Submit → Vote → View", () => {
     it("should complete full new user workflow", async () => {
@@ -103,7 +104,7 @@ describe("Complete User Journey Integration", () => {
             },
           },
         },
-      });
+      }) as any;
 
       const RegisterForm = () => {
         const [error, setError] = React.useState("");
@@ -111,7 +112,7 @@ describe("Complete User Journey Integration", () => {
 
         const handleSubmit = async (e: React.FormEvent) => {
           e.preventDefault();
-          const response = await fetch("/api/auth/register", {
+          const response = (await fetch("/api/auth/register", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -119,7 +120,7 @@ describe("Complete User Journey Integration", () => {
               email: "newuser@example.com",
               password: "Test123!@#",
             }),
-          });
+          })) as any;
 
           if (response.ok) {
             setSuccess(true);
@@ -143,11 +144,11 @@ describe("Complete User Journey Integration", () => {
 
       await user.click(screen.getByRole("button", { name: /register/i }));
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(
           screen.getByText(/Registration successful/i),
         ).toBeInTheDocument();
-      });
+      })) as any;
 
       // Step 2: Email Verification
       global.fetch = mockFetch({
@@ -157,7 +158,7 @@ describe("Complete User Journey Integration", () => {
             user: { ...mockApiResponses.login.success.user, is_verified: true },
           },
         },
-      });
+      }) as any;
 
       // Simulate clicking verification link
       const VerifyEmail = () => {
@@ -182,9 +183,9 @@ describe("Complete User Journey Integration", () => {
 
       rerender(<VerifyEmail />);
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByText(/Email verified!/i)).toBeInTheDocument();
-      });
+      })) as any;
 
       // Step 3: Login
       mockAuthStore(false);
@@ -197,7 +198,7 @@ describe("Complete User Journey Integration", () => {
 
         const handleSubmit = async (e: React.FormEvent) => {
           e.preventDefault();
-          const result = await login({ username, password });
+          const result = (await login({ username, password })) as any;
           if (result.success) {
             mockPush("/");
           }
@@ -227,26 +228,28 @@ describe("Complete User Journey Integration", () => {
         /johndoe or john@example.com/i,
       );
       const passwordInput = screen.getByPlaceholderText(/••••••••/i);
-      const loginButton = screen.getByRole("button", { name: /sign in/i });
+      const loginButton = screen.getByRole("button", {
+        name: /sign in/i,
+      }) as any;
 
       await user.type(usernameInput, "testuser");
       await user.type(passwordInput, "Test123!@#");
       await user.click(loginButton);
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(mockPush).toHaveBeenCalledWith("/");
-      });
+      })) as any;
 
       // Update auth state
       mockAuthStore(true, {
         ...mockApiResponses.login.success.user,
         is_verified: true,
-      });
+      }) as any;
 
       // Step 4: Submit Post
       global.fetch = mockFetch({
         "POST /api/posts": { data: mockApiResponses.posts.create.success },
-      });
+      }) as any;
 
       // Mock submit form
       const SubmitForm = () => {
@@ -256,14 +259,14 @@ describe("Complete User Journey Integration", () => {
 
         const handleSubmit = async (e: React.FormEvent) => {
           e.preventDefault();
-          const response = await fetch("/api/posts", {
+          const response = (await fetch("/api/posts", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: "Bearer mock-jwt-token",
             },
             body: JSON.stringify({ title, content }),
-          });
+          })) as any;
 
           if (response.ok) {
             setSubmitted(true);
@@ -297,7 +300,9 @@ describe("Complete User Journey Integration", () => {
 
       const titleInput = screen.getByLabelText(/title/i);
       const contentTextarea = screen.getByLabelText(/content/i);
-      const submitButton = screen.getByRole("button", { name: /submit/i });
+      const submitButton = screen.getByRole("button", {
+        name: /submit/i,
+      }) as any;
 
       await user.type(titleInput, "My First Post");
       await user.type(
@@ -306,12 +311,12 @@ describe("Complete User Journey Integration", () => {
       );
       await user.click(submitButton);
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(
           screen.getByText(/post submitted successfully/i),
         ).toBeInTheDocument();
         expect(mockPush).toHaveBeenCalledWith("/posts/3");
-      });
+      })) as any;
 
       // Step 5: Vote on Other Posts
       global.fetch = mockFetch({
@@ -321,7 +326,7 @@ describe("Complete User Journey Integration", () => {
         "POST /api/posts/4/vote": {
           data: mockApiResponses.verification.vote.success,
         },
-      });
+      }) as any;
 
       // Mock verification page
       const VerifyPosts = () => {
@@ -337,13 +342,13 @@ describe("Complete User Journey Integration", () => {
         }, []);
 
         const handleVote = async (postId: number) => {
-          const response = await fetch(`/api/posts/${postId}/vote`, {
+          const response = (await fetch(`/api/posts/${postId}/vote`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: "Bearer mock-jwt-token",
             },
-          });
+          })) as any;
 
           if (response.ok) {
             setVoted(true);
@@ -368,18 +373,18 @@ describe("Complete User Journey Integration", () => {
 
       rerender(<VerifyPosts />);
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByText(/Post to Verify/i)).toBeInTheDocument();
-      });
+      })) as any;
 
-      const voteButton = screen.getByRole("button", { name: /vote/i });
+      const voteButton = screen.getByRole("button", { name: /vote/i }) as any;
       await user.click(voteButton);
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(
           screen.getByText(/Vote recorded successfully/i),
         ).toBeInTheDocument();
-      });
+      })) as any;
 
       // Step 6: View Post with AI Responses
       global.fetch = mockFetch({
@@ -390,7 +395,7 @@ describe("Complete User Journey Integration", () => {
             ai_responses: mockApiResponses.aiAnalysis.completed.providers,
           },
         },
-      });
+      }) as any;
 
       // Mock post detail view
       const PostDetail = () => {
@@ -426,14 +431,14 @@ describe("Complete User Journey Integration", () => {
 
       rerender(<PostDetail />);
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByText(/Test Post 1/i)).toBeInTheDocument();
         expect(screen.getByText(/AI Responses/i)).toBeInTheDocument();
         expect(screen.getByText(/OpenAI analysis/i)).toBeInTheDocument();
         expect(screen.getByText(/Anthropic analysis/i)).toBeInTheDocument();
-      });
-    });
-  });
+      })) as any;
+    }) as any;
+  }) as any;
 
   describe("Returning User Journey: Login → Dashboard → Submit → Verify", () => {
     it("should handle returning user workflow efficiently", async () => {
@@ -448,10 +453,10 @@ describe("Complete User Journey Integration", () => {
         const router = useRouter();
 
         const handleQuickLogin = async () => {
-          const result = await login({
+          const result = (await login({
             username: "testuser",
             password: "Test123!@#",
-          });
+          })) as any;
 
           if (result.success) {
             router.push("/dashboard");
@@ -465,9 +470,9 @@ describe("Complete User Journey Integration", () => {
 
       await user.click(screen.getByRole("button", { name: /quick login/i }));
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(mockPush).toHaveBeenCalledWith("/dashboard");
-      });
+      })) as any;
 
       // Update auth state
       mockAuthStore(true, mockApiResponses.login.success.user);
@@ -485,7 +490,7 @@ describe("Complete User Journey Integration", () => {
         "GET /api/posts?author_id=1": {
           data: mockApiResponses.posts.list.filter((p) => p.author_id === 1),
         },
-      });
+      }) as any;
 
       const Dashboard = () => {
         const [stats, setStats] = React.useState<any>(null);
@@ -502,7 +507,7 @@ describe("Complete User Journey Integration", () => {
           ]).then(([statsData, postsData]) => {
             setStats(statsData);
             setPosts(postsData);
-          });
+          }) as any;
         }, []);
 
         if (!stats) {
@@ -527,12 +532,12 @@ describe("Complete User Journey Integration", () => {
 
       rerender(<Dashboard />);
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByText(/Dashboard/i)).toBeInTheDocument();
         expect(screen.getByText(/Posts: 5/i)).toBeInTheDocument();
         expect(screen.getByText(/Votes: 12/i)).toBeInTheDocument();
         expect(screen.getByText(/Test Post 1/i)).toBeInTheDocument();
-      });
+      })) as any;
 
       // Step 3: Quick Submit from Dashboard
       const QuickSubmit = () => {
@@ -542,14 +547,14 @@ describe("Complete User Journey Integration", () => {
 
         const handleSubmit = async (e: React.FormEvent) => {
           e.preventDefault();
-          const response = await fetch("/api/posts", {
+          const response = (await fetch("/api/posts", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: "Bearer mock-jwt-token",
             },
             body: JSON.stringify({ title, content }),
-          });
+          })) as any;
 
           if (response.ok) {
             setShowForm(false);
@@ -582,7 +587,7 @@ describe("Complete User Journey Integration", () => {
 
       global.fetch = mockFetch({
         "POST /api/posts": { data: mockApiResponses.posts.create.success },
-      });
+      }) as any;
 
       rerender(<QuickSubmit />);
 
@@ -590,15 +595,17 @@ describe("Complete User Journey Integration", () => {
 
       const titleInput = screen.getByPlaceholderText(/title/i);
       const contentInput = screen.getByPlaceholderText(/content/i);
-      const submitButton = screen.getByRole("button", { name: /submit/i });
+      const submitButton = screen.getByRole("button", {
+        name: /submit/i,
+      }) as any;
 
       await user.type(titleInput, "Quick Post");
       await user.type(contentInput, "Quick content");
       await user.click(submitButton);
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(mockPush).toHaveBeenCalledWith("/verify");
-      });
+      })) as any;
 
       // Step 4: Batch Verification
       global.fetch = mockFetch({
@@ -614,7 +621,7 @@ describe("Complete User Journey Integration", () => {
             ],
           },
         },
-      });
+      }) as any;
 
       const BatchVerify = () => {
         const [posts, setPosts] = React.useState<any[]>([]);
@@ -629,14 +636,14 @@ describe("Complete User Journey Integration", () => {
         }, []);
 
         const handleBatchVote = async () => {
-          await fetch("/api/posts/batch-vote", {
+          (await fetch("/api/posts/batch-vote", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
               Authorization: "Bearer mock-jwt-token",
             },
             body: JSON.stringify({ post_ids: selectedPosts }),
-          });
+          })) as any;
 
           setPosts(posts.filter((p) => !selectedPosts.includes(p.id)));
           setSelectedPosts([]);
@@ -675,10 +682,10 @@ describe("Complete User Journey Integration", () => {
 
       rerender(<BatchVerify />);
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByText(/Verify Posts/i)).toBeInTheDocument();
         expect(screen.getByText(/Post to Verify/i)).toBeInTheDocument();
-      });
+      })) as any;
 
       // Select posts and batch vote
       const checkboxes = screen.getAllByRole("checkbox");
@@ -686,12 +693,12 @@ describe("Complete User Journey Integration", () => {
 
       const batchVoteButton = screen.getByRole("button", {
         name: /vote for selected/i,
-      });
+      }) as any;
       await user.click(batchVoteButton);
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.queryByText(/Post to Verify/i)).not.toBeInTheDocument();
-      });
-    });
-  });
-});
+      })) as any;
+    }) as any;
+  }) as any;
+}) as any;

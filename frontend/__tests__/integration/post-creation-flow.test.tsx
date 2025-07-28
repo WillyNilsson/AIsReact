@@ -52,7 +52,7 @@ describe("Post Creation Flow Integration", () => {
     mockAuthStore(true, {
       ...mockApiResponses.login.success.user,
       is_verified: true,
-    });
+    }) as any;
 
     // Mock localStorage for drafts
     const localStorageMock = {
@@ -64,8 +64,8 @@ describe("Post Creation Flow Integration", () => {
     Object.defineProperty(window, "localStorage", {
       value: localStorageMock,
       writable: true,
-    });
-  });
+    }) as any;
+  }) as any;
 
   describe("Draft Management", () => {
     it("should save draft automatically while typing", async () => {
@@ -96,8 +96,8 @@ describe("Post Creation Flow Integration", () => {
       await waitFor(
         () => {
           const savedDraft = JSON.parse(
-            window.localStorage.setItem.mock.calls[
-              window.localStorage.setItem.mock.calls.length - 1
+            (window.localStorage.setItem as jest.Mock).mock.calls[
+              (window.localStorage.setItem as jest.Mock).mock.calls.length - 1
             ][1],
           );
           expect(savedDraft.title).toBe("My Draft Post");
@@ -105,7 +105,7 @@ describe("Post Creation Flow Integration", () => {
         },
         { timeout: 1500 },
       );
-    });
+    }) as any;
 
     it("should restore draft on component mount", async () => {
       const savedDraft = {
@@ -120,57 +120,61 @@ describe("Post Creation Flow Integration", () => {
 
       render(<SubmitPage />);
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByDisplayValue("Restored Draft")).toBeInTheDocument();
         expect(
           screen.getByDisplayValue("Restored content from previous session"),
         ).toBeInTheDocument();
-      });
-    });
+      })) as any;
+    }) as any;
 
     it("should clear draft after successful submission", async () => {
       const user = setupUser();
       global.fetch = mockFetch({
         "POST /api/posts": { data: mockApiResponses.posts.create.success },
-      });
+      }) as any;
 
       render(<SubmitPage />);
 
       const titleInput = screen.getByLabelText(/title/i);
       const contentTextarea = screen.getByLabelText(/content/i);
-      const submitButton = screen.getByRole("button", { name: /submit/i });
+      const submitButton = screen.getByRole("button", {
+        name: /submit/i,
+      }) as any;
 
       await user.type(titleInput, "New Post");
       await user.type(contentTextarea, "New post content");
       await user.click(submitButton);
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(window.localStorage.removeItem).toHaveBeenCalledWith(
           "post-draft",
         );
-      });
-    });
-  });
+      })) as any;
+    }) as any;
+  }) as any;
 
   describe("Submission Flow", () => {
     it("should submit post and redirect on success", async () => {
       const user = setupUser();
       global.fetch = mockFetch({
         "POST /api/posts": { data: mockApiResponses.posts.create.success },
-      });
+      }) as any;
 
       render(<SubmitPage />);
 
       const titleInput = screen.getByLabelText(/title/i);
       const contentTextarea = screen.getByLabelText(/content/i);
-      const submitButton = screen.getByRole("button", { name: /submit/i });
+      const submitButton = screen.getByRole("button", {
+        name: /submit/i,
+      }) as any;
 
       await user.type(titleInput, "New Post");
       await user.type(contentTextarea, "New post content");
       await user.click(submitButton);
 
       // Verify API call
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
           expect.stringContaining("/api/posts"),
           expect.objectContaining({
@@ -185,7 +189,7 @@ describe("Post Creation Flow Integration", () => {
             }),
           }),
         );
-      });
+      })) as any;
 
       // Verify success message
       expect(
@@ -193,10 +197,10 @@ describe("Post Creation Flow Integration", () => {
       ).toBeInTheDocument();
 
       // Verify redirect
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(mockPush).toHaveBeenCalledWith("/posts/3");
-      });
-    });
+      })) as any;
+    }) as any;
 
     it("should handle moderation rejection", async () => {
       const user = setupUser();
@@ -205,49 +209,53 @@ describe("Post Creation Flow Integration", () => {
           error: mockApiResponses.posts.create.moderation_failure,
           status: 400,
         },
-      });
+      }) as any;
 
       render(<SubmitPage />);
 
       const titleInput = screen.getByLabelText(/title/i);
       const contentTextarea = screen.getByLabelText(/content/i);
-      const submitButton = screen.getByRole("button", { name: /submit/i });
+      const submitButton = screen.getByRole("button", {
+        name: /submit/i,
+      }) as any;
 
       await user.type(titleInput, "Spam Post");
       await user.type(contentTextarea, "Buy cheap products now!");
       await user.click(submitButton);
 
       // Verify error message
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(
           screen.getByText(/content violates community guidelines/i),
         ).toBeInTheDocument();
         expect(screen.getByText(/spam/i)).toBeInTheDocument();
         expect(screen.getByText(/inappropriate_content/i)).toBeInTheDocument();
-      });
+      })) as any;
 
       // Verify no redirect
       expect(mockPush).not.toHaveBeenCalled();
-    });
+    }) as any;
 
     it("should validate required fields", async () => {
       const user = setupUser();
       render(<SubmitPage />);
 
-      const submitButton = screen.getByRole("button", { name: /submit/i });
+      const submitButton = screen.getByRole("button", {
+        name: /submit/i,
+      }) as any;
 
       // Try to submit empty form
       await user.click(submitButton);
 
       // Check for validation errors
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByText(/title is required/i)).toBeInTheDocument();
         expect(screen.getByText(/content is required/i)).toBeInTheDocument();
-      });
+      })) as any;
 
       // Verify no API call
       expect(global.fetch).not.toHaveBeenCalled();
-    });
+    }) as any;
 
     it("should enforce character limits", async () => {
       const user = setupUser();
@@ -265,15 +273,15 @@ describe("Post Creation Flow Integration", () => {
       await user.type(contentTextarea, longContent);
 
       // Check for limit warnings
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(
           screen.getByText(/title must be 200 characters or less/i),
         ).toBeInTheDocument();
         expect(
           screen.getByText(/content must be 5000 characters or less/i),
         ).toBeInTheDocument();
-      });
-    });
+      })) as any;
+    }) as any;
 
     it("should show loading state during submission", async () => {
       const user = setupUser();
@@ -288,7 +296,7 @@ describe("Post Creation Flow Integration", () => {
                   ok: true,
                   status: 200,
                   json: async () => mockApiResponses.posts.create.success,
-                }),
+                } as any),
               1000,
             ),
           ),
@@ -298,7 +306,9 @@ describe("Post Creation Flow Integration", () => {
 
       const titleInput = screen.getByLabelText(/title/i);
       const contentTextarea = screen.getByLabelText(/content/i);
-      const submitButton = screen.getByRole("button", { name: /submit/i });
+      const submitButton = screen.getByRole("button", {
+        name: /submit/i,
+      }) as any;
 
       await user.type(titleInput, "New Post");
       await user.type(contentTextarea, "New post content");
@@ -315,22 +325,22 @@ describe("Post Creation Flow Integration", () => {
         },
         { timeout: 2000 },
       );
-    });
-  });
+    }) as any;
+  }) as any;
 
   describe("File Upload", () => {
     it("should handle image upload with post", async () => {
       const user = setupUser();
       const file = new File(["image content"], "test.jpg", {
         type: "image/jpeg",
-      });
+      }) as any;
 
       global.fetch = mockFetch({
         "POST /api/upload": {
           data: { url: "https://example.com/uploaded.jpg" },
         },
         "POST /api/posts": { data: mockApiResponses.posts.create.success },
-      });
+      }) as any;
 
       render(<SubmitPage />);
 
@@ -338,21 +348,23 @@ describe("Post Creation Flow Integration", () => {
       await user.upload(fileInput, file);
 
       // Verify upload preview
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByAltText(/preview/i)).toBeInTheDocument();
-      });
+      })) as any;
 
       // Submit post with image
       const titleInput = screen.getByLabelText(/title/i);
       const contentTextarea = screen.getByLabelText(/content/i);
-      const submitButton = screen.getByRole("button", { name: /submit/i });
+      const submitButton = screen.getByRole("button", {
+        name: /submit/i,
+      }) as any;
 
       await user.type(titleInput, "Post with Image");
       await user.type(contentTextarea, "Content with image");
       await user.click(submitButton);
 
       // Verify both API calls
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith(
           expect.stringContaining("/api/upload"),
           expect.any(Object),
@@ -363,17 +375,17 @@ describe("Post Creation Flow Integration", () => {
             body: expect.stringContaining("https://example.com/uploaded.jpg"),
           }),
         );
-      });
-    });
+      })) as any;
+    }) as any;
 
     it("should validate file size and type", async () => {
       const user = setupUser();
       const largeFile = new File(["x".repeat(11 * 1024 * 1024)], "large.jpg", {
         type: "image/jpeg",
-      });
+      }) as any;
       const invalidFile = new File(["content"], "file.txt", {
         type: "text/plain",
-      });
+      }) as any;
 
       render(<SubmitPage />);
 
@@ -381,19 +393,19 @@ describe("Post Creation Flow Integration", () => {
 
       // Try large file
       await user.upload(fileInput, largeFile);
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(
           screen.getByText(/file size must be less than 10MB/i),
         ).toBeInTheDocument();
-      });
+      })) as any;
 
       // Try invalid type
       await user.upload(fileInput, invalidFile);
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(
           screen.getByText(/only image files are allowed/i),
         ).toBeInTheDocument();
-      });
-    });
-  });
-});
+      })) as any;
+    }) as any;
+  }) as any;
+}) as any;

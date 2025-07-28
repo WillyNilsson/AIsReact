@@ -249,7 +249,7 @@ describe("ConnectionStatus", () => {
 
       for (const [status, expectedClasses] of Object.entries(statusStyles)) {
         act(() => {
-          triggerStateChange({ status, reconnectAttempts: 0 });
+          triggerStateChange({ status: status as any, reconnectAttempts: 0 });
         });
 
         await waitFor(() => {

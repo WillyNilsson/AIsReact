@@ -35,7 +35,7 @@ jest.mock("@/hooks/useAuth", () => ({
     login: jest.fn().mockImplementation(async (data) => {
       if (
         data.username === "test@example.com" &&
-        data.password === "password123"
+        data.password === "password123" // pragma: allowlist secret
       ) {
         // Simulate successful login
         const authStore = require("@/store/authStore");
@@ -69,7 +69,7 @@ describe("Authentication Flow Integration", () => {
 
       global.fetch = mockFetch({
         "POST /api/auth/login": { data: mockApiResponses.login.success },
-      });
+      }) as any;
 
       // Test with the actual login page
       render(<LoginPage />);
@@ -79,7 +79,9 @@ describe("Authentication Flow Integration", () => {
         /johndoe or john@example.com/i,
       );
       const passwordInput = screen.getByPlaceholderText(/••••••••/i);
-      const submitButton = screen.getByRole("button", { name: /sign in/i });
+      const submitButton = screen.getByRole("button", {
+        name: /sign in/i,
+      }) as any;
 
       await user.type(usernameInput, "test@example.com");
       await user.type(passwordInput, "password123");

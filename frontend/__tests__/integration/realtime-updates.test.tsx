@@ -55,11 +55,11 @@ describe("Real-time Updates Integration", () => {
       mockWebSocket = new MockWebSocket(url);
       return mockWebSocket;
     }) as any;
-  });
+  }) as any;
 
   afterEach(() => {
     mockWebSocket?.close();
-  });
+  }) as any;
 
   describe("Vote Updates", () => {
     it("should handle real-time vote updates", async () => {
@@ -97,10 +97,10 @@ describe("Real-time Updates Integration", () => {
       expect(screen.getByRole("button")).toHaveTextContent("Vote");
 
       // Wait for WebSocket connection
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(mockWebSocket).toBeTruthy();
         expect(mockWebSocket?.readyState).toBe(MockWebSocket.OPEN);
-      });
+      })) as any;
 
       // Simulate vote update from server
       act(() => {
@@ -115,15 +115,15 @@ describe("Real-time Updates Integration", () => {
             data: JSON.stringify(message),
           }),
         );
-      });
+      }) as any;
 
       // Check updated state
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByTestId("vote-count")).toHaveTextContent("10 votes");
         expect(screen.getByRole("button")).toHaveTextContent("Voted");
         expect(screen.getByRole("button")).toBeDisabled();
-      });
-    });
+      })) as any;
+    }) as any;
 
     it("should handle optimistic updates with API calls", async () => {
       const user = setupUser();
@@ -131,7 +131,7 @@ describe("Real-time Updates Integration", () => {
       // Mock API response
       global.fetch = mockFetch({
         "POST /api/posts/1/vote": { data: { new_vote_count: 6 } },
-      });
+      }) as any;
 
       const OptimisticVote = () => {
         const [voteCount, setVoteCount] = React.useState(5);
@@ -143,10 +143,10 @@ describe("Real-time Updates Integration", () => {
           setVoteCount((prev) => prev + 1);
 
           try {
-            const response = await fetch("/api/posts/1/vote", {
+            const response = (await fetch("/api/posts/1/vote", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-            });
+            })) as any;
             const data = await response.json();
             setVoteCount(data.new_vote_count);
           } catch (error) {
@@ -176,20 +176,20 @@ describe("Real-time Updates Integration", () => {
       expect(screen.getByTestId("vote-count")).toHaveTextContent("6 votes");
 
       // The button might not update to "Voting..." immediately due to async state
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByRole("button")).toHaveTextContent("Voting...");
-      });
+      })) as any;
 
       // Wait for API response
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByRole("button")).toHaveTextContent("Vote");
         expect(global.fetch).toHaveBeenCalledWith(
           "/api/posts/1/vote",
           expect.objectContaining({ method: "POST" }),
         );
-      });
-    });
-  });
+      })) as any;
+    }) as any;
+  }) as any;
 
   describe("AI Analysis Progress", () => {
     it("should display AI analysis progress updates", async () => {
@@ -198,7 +198,7 @@ describe("Real-time Updates Integration", () => {
           openai: { status: "pending", progress: 0 },
           anthropic: { status: "pending", progress: 0 },
           google: { status: "pending", progress: 0 },
-        });
+        }) as any;
 
         React.useEffect(() => {
           const ws = new WebSocket("ws://localhost:8000/ws");
@@ -229,9 +229,9 @@ describe("Real-time Updates Integration", () => {
       render(<AIProgress postId={1} />);
 
       // Wait for connection
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(mockWebSocket?.readyState).toBe(MockWebSocket.OPEN);
-      });
+      })) as any;
 
       // Send progress update
       act(() => {
@@ -248,10 +248,10 @@ describe("Real-time Updates Integration", () => {
             }),
           }),
         );
-      });
+      }) as any;
 
       // Check updates
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByTestId("openai-status")).toHaveTextContent(
           "openai: Complete",
         );
@@ -261,9 +261,9 @@ describe("Real-time Updates Integration", () => {
         expect(screen.getByTestId("google-status")).toHaveTextContent(
           "google: 0%",
         );
-      });
-    });
-  });
+      })) as any;
+    }) as any;
+  }) as any;
 
   describe("Connection Management", () => {
     it("should handle connection state changes", async () => {
@@ -291,23 +291,23 @@ describe("Real-time Updates Integration", () => {
       );
 
       // Wait for connection
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByTestId("connection-status")).toHaveTextContent(
           "connected",
         );
-      });
+      })) as any;
 
       // Simulate disconnection
       act(() => {
         mockWebSocket?.close();
-      });
+      }) as any;
 
-      await waitFor(() => {
+      (await waitFor(() => {
         expect(screen.getByTestId("connection-status")).toHaveTextContent(
           "disconnected",
         );
-      });
-    });
+      })) as any;
+    }) as any;
 
     it("should handle offline/online events", async () => {
       const OfflineDetector = () => {
@@ -345,7 +345,7 @@ describe("Real-time Updates Integration", () => {
       // Simulate going offline
       act(() => {
         window.dispatchEvent(new Event("offline"));
-      });
+      }) as any;
 
       expect(screen.getByTestId("status")).toHaveTextContent(
         "You are currently offline",
@@ -354,9 +354,9 @@ describe("Real-time Updates Integration", () => {
       // Simulate going back online
       act(() => {
         window.dispatchEvent(new Event("online"));
-      });
+      }) as any;
 
       expect(screen.getByTestId("status")).toHaveTextContent("Online");
-    });
-  });
-});
+    }) as any;
+  }) as any;
+}) as any;

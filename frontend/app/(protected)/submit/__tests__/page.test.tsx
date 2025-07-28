@@ -58,7 +58,9 @@ describe("SubmitPage File Upload Validation", () => {
       isLoading: false,
       error: null,
     });
-    (useAuthStore as jest.Mock).mockReturnValue({ accessToken: "test-token" });
+    (useAuthStore as unknown as jest.Mock).mockReturnValue({
+      accessToken: "test-token",
+    });
     (useAuthStore as unknown as { getState: jest.Mock }).getState = jest
       .fn()
       .mockReturnValue({ accessToken: "test-token" });

@@ -258,12 +258,12 @@ describe("Upload API", () => {
               lengthComputable: true,
               loaded: 512000,
               total: 1048576,
-            });
+            } as ProgressEvent<EventTarget>);
             progressHandler({
               lengthComputable: true,
               loaded: 1048576,
               total: 1048576,
-            });
+            } as ProgressEvent<EventTarget>);
             setTimeout(() => handler(), 0);
           }
         });
