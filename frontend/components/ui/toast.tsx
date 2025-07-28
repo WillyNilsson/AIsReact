@@ -109,9 +109,7 @@ function ToastItem({ toast, onClose }: { toast: Toast; onClose: () => void }) {
       <div className="flex-1 min-w-0">
         <p className="font-medium leading-tight">{toast.title}</p>
         {toast.description && (
-          <p className="mt-1 text-sm opacity-90 leading-relaxed">
-            {toast.description}
-          </p>
+          <p className="mt-1 text-sm opacity-90 leading-relaxed">{toast.description}</p>
         )}
       </div>
       <button

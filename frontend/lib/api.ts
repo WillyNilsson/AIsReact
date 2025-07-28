@@ -71,17 +71,6 @@ function setupInterceptors() {
       if (config.data instanceof FormData) {
         delete config.headers["Content-Type"];
       }
-      // Debug logging for voting endpoint
-      if (config.url?.includes("/verify/")) {
-        // eslint-disable-next-line no-console
-        console.log("Vote request config:", {
-          url: config.url,
-          method: config.method,
-          hasToken: !!token,
-          tokenPreview: token ? `${token.substring(0, 20)}...` : "none",
-          data: config.data,
-        });
-      }
       return config;
     },
     (error) => {

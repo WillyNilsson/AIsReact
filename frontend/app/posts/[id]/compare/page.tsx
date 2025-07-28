@@ -23,7 +23,7 @@ export default function CompareAIResponsesPage() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto py-8">
+      <div className="container mx-auto py-8 max-w-7xl">
         <div className="animate-pulse">
           <div className="h-8 bg-gray-300 rounded w-1/3 mb-4"></div>
           <div className="h-96 bg-gray-300 rounded"></div>
@@ -34,7 +34,7 @@ export default function CompareAIResponsesPage() {
 
   if (error || !post) {
     return (
-      <div className="container mx-auto py-8">
+      <div className="container mx-auto py-8 max-w-7xl">
         <Alert variant="error">
           <p>Failed to load post for comparison.</p>
         </Alert>
@@ -50,7 +50,7 @@ export default function CompareAIResponsesPage() {
 
   if (successfulResponses.length < 2) {
     return (
-      <div className="container mx-auto py-8">
+      <div className="container mx-auto py-8 max-w-7xl">
         <Alert>
           <p>
             Not enough AI responses available for comparison. At least 2

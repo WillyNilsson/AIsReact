@@ -28,7 +28,6 @@ import {
 } from "@/components/ui/dialog";
 import { api } from "@/lib/api";
 import { format } from "date-fns";
-import { cn } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { VoteButtons } from "@/components/ui/vote-buttons";
 import { AdminApproveButton } from "@/components/ui/admin-approve-button";
@@ -119,7 +118,7 @@ function PostDetailContent() {
 
   if (isLoading) {
     return (
-      <div className="container mx-auto py-8">
+      <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="animate-pulse">
           <div className="h-8 bg-gray-300 rounded w-1/3 mb-4"></div>
           <div className="h-4 bg-gray-300 rounded w-full mb-2"></div>
@@ -239,62 +238,46 @@ function PostDetailContent() {
 
       {/* Main Post Card - Combined */}
       <div className="bg-gradient-to-br from-[#1a1b26]/90 to-[#2a2d3a]/90 rounded-2xl p-8 mb-8 backdrop-blur-sm border border-[#2a2d3a]">
-        {/* Header with title and status */}
-        <div className="flex justify-between items-start mb-6">
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold mb-3 text-[#c0caf5]">
-              {post.title}
-            </h1>
-            <div className="flex items-center gap-4 text-sm text-[#9aa5ce]">
-              <div className="flex items-center gap-1.5">
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                </svg>
-                <span>{post?.user?.username || "Unknown"}</span>
-              </div>
-              <span className="text-[#565a6e]">•</span>
-              <div className="flex items-center gap-1.5">
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                  />
-                </svg>
-                <span>{safeLocaleString(post.created_at)}</span>
-              </div>
+        {/* Header with title */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold mb-3 text-[#c0caf5]">
+            {post.title}
+          </h1>
+          <div className="flex items-center gap-4 text-sm text-[#9aa5ce]">
+            <div className="flex items-center gap-1.5">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                />
+              </svg>
+              <span>{post?.user?.username || "Unknown"}</span>
+            </div>
+            <span className="text-[#565a6e]">•</span>
+            <div className="flex items-center gap-1.5">
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                />
+              </svg>
+              <span>{safeLocaleString(post.created_at)}</span>
             </div>
           </div>
-          <span
-            className={cn(
-              "px-3 py-1.5 text-xs font-medium rounded-full border",
-              post.status === PostStatus.LIVE
-                ? "bg-green-500/10 text-green-400 border-green-500/20"
-                : post.status === PostStatus.REJECTED
-                  ? "bg-red-500/10 text-red-400 border-red-500/20"
-                  : post.status === PostStatus.PENDING_VERIFICATION
-                    ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
-                    : "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-            )}
-          >
-            {post.status.replace(/_/g, " ")}
-          </span>
         </div>
 
         {/* Source URL */}

@@ -372,11 +372,10 @@ export function MissionModal({ isOpen, onClose }: MissionModalProps) {
                       key={index}
                       type="button"
                       onClick={() => goToSlide(index)}
-                      className={`w-2 h-2 rounded-full transition-all ${
-                        index === currentSlide
+                      className={`w-2 h-2 rounded-full transition-all ${index === currentSlide
                           ? "w-8 bg-indigo-500"
                           : "bg-gray-600 hover:bg-gray-500"
-                      }`}
+                        }`}
                       aria-label={`Go to slide ${index + 1}`}
                     />
                   ))}

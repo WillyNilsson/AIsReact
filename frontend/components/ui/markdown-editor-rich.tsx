@@ -237,7 +237,7 @@ const MarkdownEditor = ({
           gap: 2px !important;
           align-items: center !important;
         }
-
+        
         /* Ensure toolbar items stay horizontal */
         .markdown-editor-wrapper .w-md-editor-toolbar ul {
           display: flex !important;
@@ -247,7 +247,7 @@ const MarkdownEditor = ({
           margin: 0 !important;
           padding: 0 !important;
         }
-
+        
         .markdown-editor-wrapper .w-md-editor-toolbar li {
           display: inline-flex !important;
           margin: 0 !important;

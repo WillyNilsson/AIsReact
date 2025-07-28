@@ -114,7 +114,7 @@ export default function EditProfilePage() {
         });
       }
 
-      setSuccess(response.message || "Avatar updated successfully!");
+      setSuccess("Avatar updated successfully!");
 
       // Force refetch to ensure data is synced
       queryClient.invalidateQueries({ queryKey: ["auth-me"] });

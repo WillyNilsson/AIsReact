@@ -167,11 +167,3 @@ frontend-env*.txt
 deployment-info.txt
 .env.render
 backend/.env.render
-
-# Gemini.md and Claude.md / realized people might want to create their own
-GEMINI.md
-CLAUDE.md
-.proguardian
-
-# Think I should create a new one for public
-.github

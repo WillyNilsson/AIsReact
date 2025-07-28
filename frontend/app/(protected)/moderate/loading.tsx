@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 export default function ModerateLoading() {
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8">
+      <div className="max-w-3xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <Skeleton className="h-10 w-80 mb-2" />

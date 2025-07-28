@@ -62,8 +62,6 @@ export function useOptimisticVote(options?: OptimisticVoteOptions) {
   const mutation = useMutation({
     mutationFn: castVote,
     onMutate: async ({ postId, voteData }) => {
-      // eslint-disable-next-line no-console
-      console.log("Starting vote mutation:", { postId, voteData });
       try {
         // Store current state for potential rollback
         const previousVote = getVote(postId);
@@ -273,18 +271,7 @@ export function useOptimisticVote(options?: OptimisticVoteOptions) {
       // Determine if this was a removal based on the final vote state
       const isRemoval = newUserVote === null;
 
-      // Debug logging
-      // eslint-disable-next-line no-console
-      console.log("Vote success response:", {
-        postId,
-        wasToggleOff,
-        isRemoval,
-        responseData: data,
-        extractedVote: newUserVote,
-        previousVote: rollbackRef.current?.previousVote,
-        submittedVote: variables.voteData.vote,
-        voteComparison: `${previousVote} === ${submittedVote} = ${wasToggleOff}`,
-      });
+      // Vote state has been determined
 
       // Update the local vote store with the correct value
       setVote(postId, newUserVote);

@@ -1,0 +1,8 @@
+{
+  "version": "0.1.0",
+  "initialized": "2025-07-23T17:35:08.542Z",
+  "mode": "guardian",
+  "cliType": "claude",
+  "targetFile": "CLAUDE.md",
+  "enhanced": true
+}

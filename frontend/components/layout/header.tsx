@@ -27,9 +27,9 @@ export function Header() {
     requireAuth?: boolean;
     requireRole?: string[];
   }> = [
-    { href: "/", label: "Home", icon: Home },
+    { href: "/", label: "Home", icon: Home, requireAuth: true },
     { href: "/verify", label: "Verify", icon: CheckCircle, requireAuth: true },
-    { href: "/rejected", label: "Rejected", icon: XCircle },
+    { href: "/rejected", label: "Rejected", icon: XCircle, requireAuth: true },
     // Moderation page temporarily removed - see /app/(protected)/moderate/page.tsx for future implementation notes
   ];
 
